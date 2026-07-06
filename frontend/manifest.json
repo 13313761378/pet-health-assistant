@@ -1,0 +1,15 @@
+{
+  "name": "宠物健康助手",
+  "appid": "__UNI__PET_HEALTH_ASSISTANT",
+  "description": "宠物陪伴与健康管理小程序静态原型",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false
+    },
+    "usingComponents": true
+  }
+}

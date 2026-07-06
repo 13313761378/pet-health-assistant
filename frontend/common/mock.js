@@ -1,0 +1,354 @@
+export const pet = {
+  name: "豆包",
+  desc: "柯基 · 2岁 · 公",
+  weight: "10.8 kg",
+  days: 286,
+  healthScore: 92,
+  healthLabel: "优秀",
+  taskProgress: "3/4",
+  avatar:
+    "https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg",
+};
+
+export const pets = [
+  {
+    name: "豆包",
+    desc: "柯基 · 2岁 · 公",
+    weight: "10.8 kg",
+    days: 286,
+    healthScore: 92,
+    healthLabel: "优秀",
+    taskProgress: "3/4",
+    avatar:
+      "https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg",
+    active: true,
+    healthRecord: {
+      feeding: 2,
+      water: "正常",
+      walk: 3.2,
+      weight: 10.8,
+      stool: "正常",
+      mood: "活跃",
+    },
+  },
+  {
+    name: "奶糖",
+    desc: "比熊 · 1岁 · 母",
+    weight: "5.6 kg",
+    days: 124,
+    healthScore: 88,
+    healthLabel: "良好",
+    taskProgress: "2/4",
+    avatar:
+      "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=120&q=80",
+    active: false,
+    healthRecord: {
+      feeding: 1.5,
+      water: "少",
+      walk: 2.1,
+      weight: 5.6,
+      stool: "正常",
+      mood: "正常",
+    },
+  },
+  {
+    name: "团子",
+    desc: "英短 · 3岁 · 公",
+    weight: "4.9 kg",
+    days: 318,
+    healthScore: 95,
+    healthLabel: "优秀",
+    taskProgress: "4/4",
+    avatar:
+      "https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=120&q=80",
+    active: false,
+    healthRecord: {
+      feeding: 2,
+      water: "正常",
+      walk: 0.6,
+      weight: 4.9,
+      stool: "偏软",
+      mood: "低迷",
+    },
+  },
+];
+
+export const healthRecord = {
+  feeding: 2,
+  water: "正常",
+  walk: 3.2,
+  weight: 10.8,
+  stool: "正常",
+  mood: "活跃",
+};
+
+export const tasks = [
+  {
+    name: "早餐后补充益生菌",
+    time: "08:30",
+    note: "拌入半包，已完成",
+    done: true,
+  },
+  {
+    name: "傍晚遛弯",
+    time: "18:30",
+    note: "避开高温路面，待完成",
+    done: false,
+  },
+  {
+    name: "清洁耳朵",
+    time: "21:00",
+    note: "使用温和护理液，待完成",
+    done: false,
+  },
+];
+
+export const weekDays = [
+  { label: "周一", day: "1" },
+  { label: "周二", day: "2" },
+  { label: "周三", day: "3" },
+  { label: "周四", day: "4", selected: true },
+  { label: "周五", day: "5" },
+  { label: "周六", day: "6" },
+  { label: "周日", day: "7" },
+];
+
+export const messages = [
+  {
+    type: "新任务提醒",
+    title: "今天 18:30 需要遛弯",
+    status: "未读",
+    icon: "历",
+  },
+  {
+    type: "家庭组邀请",
+    title: "用户“小明”邀请你加入家庭组",
+    status: "未读",
+    icon: "家",
+  },
+  {
+    type: "系统通知",
+    title: "版本更新通知：健康趋势样式已优化",
+    status: "已读",
+    icon: "信",
+  },
+];
+
+export const breedData = {
+  dog: {
+    title: "狗类百科",
+    breeds: [
+      {
+        name: "金毛寻回犬",
+        desc: "温顺友好，适合家庭陪伴，运动量较高。",
+        image:
+          "https://images.unsplash.com/photo-1554456854-55a089fd4cb2?auto=format&fit=crop&w=720&q=85",
+        intro:
+          "金毛寻回犬性格温和、亲人，对家庭成员非常友好，适合有稳定陪伴和户外活动时间的家庭。",
+        info: {
+          基本信息: "中大型犬 / 温顺 / 适合家庭",
+          饭量: "较大，建议定时定量",
+          寿命: "10-12年",
+          掉毛: "较多",
+          体味: "中等",
+          性格: "温顺、亲人、友好",
+          运动量: "较高，需要每日运动",
+          领养建议: "适合有时间陪伴和户外活动条件的家庭",
+        },
+      },
+      {
+        name: "拉布拉多",
+        desc: "亲人稳定，学习能力强，适合陪伴和训练。",
+        image:
+          "https://images.unsplash.com/photo-1561037404-61cd46aa615b?auto=format&fit=crop&w=720&q=85",
+        intro: "拉布拉多活泼友善，适应力强，喜欢与人互动，需要稳定运动和饮食管理。",
+        info: {
+          基本信息: "中大型犬 / 友好 / 易训练",
+          饭量: "较大，注意避免过量",
+          寿命: "10-12年",
+          掉毛: "中等偏多",
+          体味: "中等",
+          性格: "亲人、稳定、聪明",
+          运动量: "较高，需要规律消耗精力",
+          领养建议: "适合愿意训练并能保证运动量的家庭",
+        },
+      },
+      {
+        name: "柯基犬",
+        desc: "活泼机警，腿短身长，需要关注体重。",
+        image:
+          "https://images.unsplash.com/photo-1557973557-ddfa9ee8c8c6?auto=format&fit=crop&w=720&q=85",
+        intro: "柯基犬性格活泼亲人，体型小但精力充沛，日常需关注腰椎和体重管理。",
+        info: {
+          基本信息: "小型犬 / 易胖 / 腿短身长",
+          饭量: "中等，需控制热量",
+          寿命: "12-15年",
+          掉毛: "较多",
+          体味: "较轻",
+          性格: "活泼、机警、亲人",
+          运动量: "中等，需要每日散步",
+          领养建议: "避免频繁上下楼，关注腰椎压力",
+        },
+      },
+      {
+        name: "边境牧羊犬",
+        desc: "聪明敏捷，精力旺盛，需要大量互动。",
+        image:
+          "https://images.unsplash.com/photo-1503256207526-0d5d80fa2f47?auto=format&fit=crop&w=720&q=85",
+        intro: "边境牧羊犬学习能力强，运动和脑力需求都高，适合有训练经验的家庭。",
+        info: {
+          基本信息: "中型犬 / 高智商 / 高精力",
+          饭量: "中等偏大，随运动量调整",
+          寿命: "12-15年",
+          掉毛: "中等",
+          体味: "较轻",
+          性格: "聪明、敏捷、专注",
+          运动量: "很高，需要训练和游戏",
+          领养建议: "适合能提供大量陪伴和训练的家庭",
+        },
+      },
+      {
+        name: "泰迪",
+        desc: "体型小巧，亲人活泼，适合城市家庭。",
+        image:
+          "https://images.unsplash.com/photo-1593134257782-e89567b7718a?auto=format&fit=crop&w=720&q=85",
+        intro: "泰迪体型小、适应性强，喜欢陪伴，需要规律梳毛和情绪陪伴。",
+        info: {
+          基本信息: "小型犬 / 适合公寓 / 需美容",
+          饭量: "较小，建议少量定时",
+          寿命: "12-16年",
+          掉毛: "较少",
+          体味: "较轻",
+          性格: "亲人、活泼、敏感",
+          运动量: "中等，短时多次活动",
+          领养建议: "适合愿意定期护理毛发的家庭",
+        },
+      },
+      {
+        name: "柴犬",
+        desc: "独立机敏，爱干净，有鲜明个性。",
+        image:
+          "https://images.unsplash.com/photo-1589561253898-768105ca91a8?auto=format&fit=crop&w=720&q=85",
+        intro: "柴犬独立、警觉，日常较爱干净，但训练需要耐心和一致性。",
+        info: {
+          基本信息: "中小型犬 / 独立 / 爱干净",
+          饭量: "中等，注意体重",
+          寿命: "12-15年",
+          掉毛: "换毛期较多",
+          体味: "较轻",
+          性格: "独立、机敏、有主见",
+          运动量: "中等偏高",
+          领养建议: "适合有耐心并能稳定训练的家庭",
+        },
+      },
+    ],
+  },
+  cat: {
+    title: "猫类百科",
+    breeds: [
+      {
+        name: "英国短毛猫",
+        desc: "性格稳定，圆润安静，适合室内陪伴。",
+        image:
+          "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=720&q=85",
+        intro: "英国短毛猫性格温和稳定，适合室内饲养，日常需注意体重和毛发护理。",
+        info: {
+          基本信息: "中型猫 / 圆润 / 室内友好",
+          饭量: "中等，需控制体重",
+          寿命: "12-16年",
+          掉毛: "中等",
+          体味: "较轻",
+          性格: "安静、稳定、亲人",
+          运动量: "中等偏低",
+          领养建议: "适合喜欢安静陪伴的家庭",
+        },
+      },
+      {
+        name: "美国短毛猫",
+        desc: "活泼健康，适应力强，亲人不粘人。",
+        image:
+          "https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?auto=format&fit=crop&w=720&q=85",
+        intro: "美国短毛猫体质较好，活泼但不过分粘人，适合多数家庭环境。",
+        info: {
+          基本信息: "中型猫 / 适应力强 / 体质好",
+          饭量: "中等，建议规律喂养",
+          寿命: "13-17年",
+          掉毛: "中等",
+          体味: "较轻",
+          性格: "活泼、独立、友好",
+          运动量: "中等",
+          领养建议: "适合希望互动又保留空间感的家庭",
+        },
+      },
+      {
+        name: "布偶猫",
+        desc: "温柔亲人，外形优雅，需要毛发护理。",
+        image:
+          "https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=720&q=85",
+        intro: "布偶猫性格温顺，喜欢陪伴，毛发较长，需要定期梳理和清洁。",
+        info: {
+          基本信息: "大型猫 / 长毛 / 温顺",
+          饭量: "中等偏大",
+          寿命: "12-15年",
+          掉毛: "较多",
+          体味: "较轻",
+          性格: "温柔、亲人、安静",
+          运动量: "中等偏低",
+          领养建议: "适合能定期梳毛并耐心陪伴的家庭",
+        },
+      },
+      {
+        name: "暹罗猫",
+        desc: "聪明外向，表达欲强，喜欢互动。",
+        image:
+          "https://images.unsplash.com/photo-1568152950566-c1bf43f4ab28?auto=format&fit=crop&w=720&q=85",
+        intro: "暹罗猫聪明活泼，喜欢和主人交流，需要较多互动和陪伴。",
+        info: {
+          基本信息: "中型猫 / 短毛 / 高互动",
+          饭量: "中等",
+          寿命: "12-16年",
+          掉毛: "较少",
+          体味: "较轻",
+          性格: "聪明、外向、粘人",
+          运动量: "中等偏高",
+          领养建议: "适合愿意经常互动的家庭",
+        },
+      },
+      {
+        name: "缅因猫",
+        desc: "体型较大，温和沉稳，需要空间。",
+        image:
+          "https://images.unsplash.com/photo-1618826411640-d6df44dd3f7a?auto=format&fit=crop&w=720&q=85",
+        intro: "缅因猫体型大但性格温和，毛发较长，需要较大的生活空间和护理时间。",
+        info: {
+          基本信息: "大型猫 / 长毛 / 温和",
+          饭量: "较大，按体重管理",
+          寿命: "12-15年",
+          掉毛: "较多",
+          体味: "较轻",
+          性格: "沉稳、友好、耐心",
+          运动量: "中等",
+          领养建议: "适合空间充足并能定期护理的家庭",
+        },
+      },
+      {
+        name: "无毛猫",
+        desc: "亲人粘人，皮肤护理需求较高。",
+        image:
+          "https://images.unsplash.com/photo-1615796153287-98eacf0abb13?auto=format&fit=crop&w=720&q=85",
+        intro: "无毛猫亲人且需要保暖，皮肤油脂护理和环境温度管理很重要。",
+        info: {
+          基本信息: "中型猫 / 无毛 / 需保暖",
+          饭量: "中等偏大，代谢较高",
+          寿命: "12-15年",
+          掉毛: "几乎无",
+          体味: "需定期清洁皮肤",
+          性格: "亲人、粘人、活泼",
+          运动量: "中等",
+          领养建议: "适合能细致护理皮肤和温度的家庭",
+        },
+      },
+    ],
+  },
+};
+ 

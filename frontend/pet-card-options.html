@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>宠物管理卡片方案</title>
+    <style>
+      :root {
+        --orange: #ffb84d;
+        --orange-deep: #e99024;
+        --cream: #fff5e6;
+        --green: #7ed957;
+        --ink: #25211d;
+        --muted: #8b8176;
+        --line: #f0e4d4;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #fafafa;
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Microsoft YaHei", sans-serif;
+      }
+
+      .preview-shell {
+        max-width: 430px;
+        min-height: 100vh;
+        margin: 0 auto;
+        background: linear-gradient(180deg, #fffaf3 0%, #fafafa 28%);
+        padding: 22px 16px 40px;
+      }
+
+      .page-title {
+        margin: 0 0 18px;
+      }
+
+      .page-title p {
+        margin: 0 0 6px;
+        color: var(--orange-deep);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .page-title h1 {
+        margin: 0;
+        font-size: 28px;
+        letter-spacing: 0;
+      }
+
+      .option-label {
+        margin: 24px 0 10px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .card {
+        border: 1px solid rgba(234, 211, 178, 0.72);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: 0 16px 34px rgba(167, 114, 45, 0.1);
+      }
+
+      .pet-avatar {
+        width: 72px;
+        height: 72px;
+        border: 5px solid #ffffff;
+        border-radius: 24px;
+        object-fit: cover;
+        box-shadow: 0 10px 22px rgba(167, 114, 45, 0.12);
+      }
+
+      .pet-name {
+        display: block;
+        color: var(--ink);
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.1;
+      }
+
+      .pet-desc {
+        display: block;
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .health-pill {
+        display: grid;
+        place-items: center;
+        min-width: 66px;
+        height: 66px;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at center, #fff 56%, transparent 57%),
+          conic-gradient(var(--green) 0 92%, #f2eadf 92% 100%);
+        color: var(--orange-deep);
+      }
+
+      .health-pill strong {
+        display: block;
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .health-pill span {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 10px;
+        text-align: center;
+      }
+
+      .switch-row {
+        display: flex;
+        gap: 8px;
+        overflow: hidden;
+      }
+
+      .pet-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-width: max-content;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--muted);
+        padding: 7px 10px 7px 7px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .pet-chip.active {
+        border-color: #ffd28a;
+        background: var(--cream);
+        color: var(--orange-deep);
+      }
+
+      .pet-chip img {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .add-dot {
+        display: grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--cream);
+        color: var(--orange-deep);
+        font-weight: 700;
+      }
+
+      .option-a {
+        padding: 16px;
+      }
+
+      .option-a .top {
+        display: grid;
+        grid-template-columns: 72px 1fr auto;
+        align-items: center;
+        gap: 13px;
+        margin-bottom: 14px;
+      }
+
+      .option-b {
+        position: relative;
+        overflow: hidden;
+        padding: 18px;
+        background: linear-gradient(135deg, #ffffff 0%, #fff1d8 100%);
+      }
+
+      .option-b .top {
+        display: grid;
+        grid-template-columns: 92px 1fr;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .option-b .pet-avatar {
+        width: 92px;
+        height: 92px;
+        border-radius: 28px;
+      }
+
+      .mini-stack {
+        display: flex;
+        align-items: center;
+        margin-top: 16px;
+      }
+
+      .mini-stack img,
+      .mini-stack span {
+        width: 36px;
+        height: 36px;
+        border: 3px solid #ffffff;
+        border-radius: 50%;
+        margin-right: -9px;
+        object-fit: cover;
+      }
+
+      .mini-stack span {
+        display: grid;
+        place-items: center;
+        background: var(--cream);
+        color: var(--orange-deep);
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .option-b .score {
+        margin-top: 11px;
+        color: var(--orange-deep);
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .option-c {
+        padding: 16px;
+      }
+
+      .option-c .top {
+        display: grid;
+        grid-template-columns: 76px 1fr 78px;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .option-c .health-pill {
+        width: 78px;
+        height: 78px;
+      }
+
+      .option-c .switch-row {
+        margin-top: 14px;
+      }
+
+      .option-d {
+        padding: 18px;
+        background:
+          linear-gradient(135deg, rgba(255, 184, 77, 0.2), rgba(126, 217, 87, 0.13)),
+          #ffffff;
+      }
+
+      .option-d .top {
+        display: grid;
+        grid-template-columns: 74px 1fr;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .growth-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 15px;
+      }
+
+      .growth-row div {
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 10px 8px;
+        text-align: center;
+      }
+
+      .growth-row span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .growth-row strong {
+        display: block;
+        margin-top: 4px;
+        color: var(--orange-deep);
+        font-size: 17px;
+      }
+
+      .caption {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="preview-shell">
+      <header class="page-title">
+        <p>宠物管理卡片 UI 方案</p>
+        <h1>选择一种首页顶部视觉</h1>
+      </header>
+
+      <p class="option-label">方案 A：横向胶囊切换，信息密度最高</p>
+      <section class="card option-a">
+        <div class="top">
+          <img class="pet-avatar" src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包" />
+          <div>
+            <span class="pet-name">豆包</span>
+            <span class="pet-desc">柯基 · 2岁 · 公</span>
+          </div>
+          <div class="health-pill"><div><strong>92%</strong><span>优秀</span></div></div>
+        </div>
+        <div class="switch-row">
+          <span class="pet-chip active"><img src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="" />豆包</span>
+          <span class="pet-chip"><img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=120&q=80" alt="" />奶糖</span>
+          <span class="pet-chip"><img src="https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=120&q=80" alt="" />团子</span>
+          <span class="pet-chip"><i class="add-dot">+</i>新增</span>
+        </div>
+      </section>
+      <p class="caption">优点：切换最明显，适合多宠家庭。缺点：陪伴氛围一般。</p>
+
+      <p class="option-label">方案 B：主宠物大卡 + 头像堆叠，陪伴感强</p>
+      <section class="card option-b">
+        <div class="top">
+          <img class="pet-avatar" src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包" />
+          <div>
+            <span class="pet-name">豆包</span>
+            <span class="pet-desc">柯基 · 2岁 · 公</span>
+            <div class="score">健康值 92% · 今日状态优秀</div>
+          </div>
+        </div>
+        <div class="mini-stack">
+          <img src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="" />
+          <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=120&q=80" alt="" />
+          <img src="https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=120&q=80" alt="" />
+          <span>+</span>
+        </div>
+      </section>
+      <p class="caption">优点：最像宠物陪伴 App。缺点：切换入口没有 A 明确。</p>
+
+      <p class="option-label">方案 C：健康值优先，推荐</p>
+      <section class="card option-c">
+        <div class="top">
+          <img class="pet-avatar" src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包" />
+          <div>
+            <span class="pet-name">豆包</span>
+            <span class="pet-desc">柯基 · 2岁 · 公</span>
+          </div>
+          <div class="health-pill"><div><strong>92%</strong><span>健康值</span></div></div>
+        </div>
+        <div class="switch-row">
+          <span class="pet-chip active"><img src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="" />豆包</span>
+          <span class="pet-chip"><img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=120&q=80" alt="" />奶糖</span>
+          <span class="pet-chip"><img src="https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=120&q=80" alt="" />团子</span>
+          <span class="pet-chip"><i class="add-dot">+</i>新增</span>
+        </div>
+      </section>
+      <p class="caption">优点：宠物和健康值都突出，最符合“宠物健康助手”。缺点：视觉更克制。</p>
+
+      <p class="option-label">方案 D：宠物成长卡，情绪价值最高</p>
+      <section class="card option-d">
+        <div class="top">
+          <img class="pet-avatar" src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包" />
+          <div>
+            <span class="pet-name">豆包</span>
+            <span class="pet-desc">柯基 · 2岁 · 公</span>
+          </div>
+        </div>
+        <div class="growth-row">
+          <div><span>已陪伴</span><strong>286天</strong></div>
+          <div><span>健康值</span><strong>92%</strong></div>
+          <div><span>今日任务</span><strong>3/4</strong></div>
+        </div>
+      </section>
+      <p class="caption">优点：成长感和陪伴感最强。缺点：顶部卡片信息会稍多。</p>
+    </main>
+  </body>
+</html>
