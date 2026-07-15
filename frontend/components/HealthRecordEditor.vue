@@ -162,26 +162,62 @@ export default {
 .soft-input {
   display: flex;
   align-items: center;
-  gap: 14rpx;
-  align-self: flex-start;
+  width: min(100%, 360rpx);
+  min-height: 72rpx;
+  overflow: hidden;
   border-radius: 999rpx;
-  background: #ffffff;
-  padding: 10rpx 18rpx 10rpx 10rpx;
+  border: 2rpx solid #f1dfc8;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 6rpx 8rpx 6rpx 24rpx;
+  box-shadow: 0 8rpx 22rpx rgba(167, 114, 45, 0.08);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.soft-input input {
-  width: 120rpx;
-  border-radius: 999rpx;
-  background: #fff7ec;
+.soft-input:focus-within {
+  border-color: #ffb84d;
+  box-shadow: 0 0 0 6rpx rgba(255, 184, 77, 0.14), 0 10rpx 24rpx rgba(167, 114, 45, 0.1);
+}
+
+.soft-input input,
+.soft-input uni-input {
+  flex: 1;
+  width: 0;
+  height: 58rpx;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
   color: #2c2925;
-  font-size: 34rpx;
-  font-weight: 600;
-  text-align: center;
+  font-size: 32rpx;
+  font-weight: 700;
+  line-height: 58rpx;
+}
+
+.soft-input :deep(.uni-input-wrapper),
+.soft-input :deep(.uni-input-input) {
+  height: 58rpx;
+  border: 0 !important;
+  outline: 0;
+  background: transparent;
+  color: #2c2925;
+  font-size: 32rpx;
+  font-weight: 700;
+  line-height: 58rpx;
 }
 
 .soft-input text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  min-width: 76rpx;
+  margin-left: 14rpx;
+  border-radius: 999rpx;
+  background: #fff4e4;
   color: #8b8176;
-  font-size: 26rpx;
+  padding: 0 18rpx;
+  font-size: 24rpx;
+  font-weight: 600;
 }
 
 .tags {

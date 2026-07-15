@@ -5,6 +5,8 @@ const petModal = document.querySelector("#pet-modal");
 const toast = document.querySelector("#app-toast");
 let previousPageId = "mine-page";
 let activeBreedCategory = "dog";
+let activeRecordPetName = "豆包";
+let activePetName = "豆包";
 let toastTimer;
 
 const petProfiles = {
@@ -327,6 +329,79 @@ const breedData = {
   },
 };
 
+const breedFilterMeta = {
+  dog: {
+    "金毛寻回犬": { primary: "大型犬", personality: ["温顺", "黏人"], difficulty: "一般", shedding: "多", exercise: "高", environment: "需要较大空间" },
+    "拉布拉多": { primary: "大型犬", personality: ["温顺", "活泼", "黏人"], difficulty: "新手友好", shedding: "多", exercise: "高", environment: "需要较大空间" },
+    "柯基犬": { primary: "小型犬", personality: ["活泼", "黏人"], difficulty: "一般", shedding: "多", exercise: "中等", environment: "公寓适合" },
+    "边境牧羊犬": { primary: "中型犬", personality: ["活泼", "独立"], difficulty: "较高", shedding: "中等", exercise: "高", environment: "需要较大空间" },
+    "泰迪": { primary: "小型犬", personality: ["活泼", "黏人"], difficulty: "新手友好", shedding: "少", exercise: "中等", environment: "公寓适合" },
+    "柴犬": { primary: "中型犬", personality: ["独立", "活泼"], difficulty: "较高", shedding: "多", exercise: "中等", environment: "公寓适合" },
+  },
+  cat: {
+    "英国短毛猫": { primary: "短毛猫", personality: ["温顺", "独立"], difficulty: "新手友好", shedding: "中等", exercise: "低", environment: "公寓适合" },
+    "美国短毛猫": { primary: "短毛猫", personality: ["活泼", "独立"], difficulty: "新手友好", shedding: "中等", exercise: "中等", environment: "公寓适合" },
+    "布偶猫": { primary: "长毛猫", personality: ["温顺", "黏人"], difficulty: "一般", shedding: "多", exercise: "低", environment: "公寓适合" },
+    "暹罗猫": { primary: "短毛猫", personality: ["活泼", "黏人"], difficulty: "一般", shedding: "少", exercise: "中等", environment: "公寓适合" },
+    "缅因猫": { primary: "长毛猫", personality: ["温顺", "独立"], difficulty: "较高", shedding: "多", exercise: "中等", environment: "需要较大空间" },
+    "无毛猫": { primary: "无毛猫", personality: ["活泼", "黏人"], difficulty: "较高", shedding: "少", exercise: "中等", environment: "公寓适合" },
+  },
+};
+
+const breedFilterOptions = {
+  dog: ["全部", "小型犬", "中型犬", "大型犬", "巨型犬"],
+  cat: ["全部", "短毛猫", "长毛猫", "卷毛猫", "无毛猫"],
+};
+const commonBreedFilters = [
+  { key: "personality", label: "性格", values: ["全部", "温顺", "活泼", "独立", "黏人"] },
+  { key: "difficulty", label: "饲养难度", values: ["全部", "新手友好", "一般", "较高"] },
+  { key: "shedding", label: "掉毛程度", values: ["全部", "少", "中等", "多"] },
+  { key: "exercise", label: "运动需求", values: ["全部", "低", "中等", "高"] },
+  { key: "environment", label: "居住环境", values: ["全部", "公寓适合", "需要较大空间"] },
+];
+let breedFilterState = createDefaultBreedFilters();
+let breedFilterExpanded = false;
+
+function createDefaultBreedFilters() {
+  return { primary: "全部", personality: "全部", difficulty: "全部", shedding: "全部", exercise: "全部", environment: "全部" };
+}
+
+function getFilteredBreeds(category) {
+  return breedData[category].breeds
+    .map((breed, index) => ({ breed, index, meta: breedFilterMeta[category][breed.name] }))
+    .filter(({ meta }) => !meta || Object.entries(breedFilterState).every(([key, value]) => {
+      if (value === "全部") return true;
+      return Array.isArray(meta[key]) ? meta[key].includes(value) : meta[key] === value;
+    }));
+}
+
+function renderBreedFilters(containerId, category, resultCount) {
+  const container = document.querySelector(`#${containerId}`);
+  if (!container) return;
+  const activeCount = Object.values(breedFilterState).filter((value) => value !== "全部").length;
+  const groups = [
+    { key: "primary", label: category === "dog" ? "体型分类" : "毛发分类", values: breedFilterOptions[category] },
+    ...commonBreedFilters,
+  ];
+  container.classList.toggle("expanded", breedFilterExpanded);
+  container.innerHTML = `
+    <div class="breed-filter-head">
+      <div><strong>筛选品种</strong><span>${activeCount ? `已选择 ${activeCount} 个条件` : "需要时可展开筛选"}</span></div>
+      <div class="breed-filter-actions"><em>${resultCount} 个结果</em><button type="button" data-toggle-breed-filters aria-expanded="${breedFilterExpanded}">${breedFilterExpanded ? "收起" : "展开筛选"}<i>⌄</i></button></div>
+    </div>
+    <div class="breed-filter-body">
+      ${groups.map((group) => `<div class="breed-filter-row"><span>${group.label}</span><div>${group.values.map((value) => `<button class="${breedFilterState[group.key] === value ? "active" : ""}" type="button" data-filter-key="${group.key}" data-filter-value="${value}">${value}</button>`).join("")}</div></div>`).join("")}
+    </div>`;
+}
+
+function renderBreedCards(targetId, category) {
+  const matches = getFilteredBreeds(category);
+  renderBreedFilters(targetId === "breed-list" ? "breed-list-filters" : "wiki-breed-filters", category, matches.length);
+  const target = document.querySelector(`#${targetId}`);
+  target.innerHTML = matches.length
+    ? matches.map(({ breed, index }) => `<button class="breed-list-card" type="button" data-breed-index="${index}"><img src="${breed.image}" alt="${breed.name}" /><div><strong>${breed.name}</strong><span>${breed.desc}</span></div></button>`).join("")
+    : `<div class="breed-filter-empty"><strong>没有找到匹配品种</strong><span>可以减少筛选条件后再试</span><button type="button" data-reset-breed-filters>重置筛选</button></div>`;
+}
 function showWikiView(viewId) {
   document
     .querySelectorAll("#wiki-page .wiki-view")
@@ -406,10 +481,39 @@ function formatShortDate(date) {
   return `${date.getMonth() + 1} 月 ${date.getDate()} 日`;
 }
 
+function getRecordForActivePet(key) {
+  const datedRecord = dailyRecordData[key];
+  if (!datedRecord) return null;
+  if (activeRecordPetName === "豆包") return datedRecord;
+  const pet = petProfiles[activeRecordPetName];
+  if (!pet) return datedRecord;
+  return {
+    weight: `${pet.record.weight} kg`, feeding: `${pet.record.feeding} 勺`, water: pet.record.water,
+    walk: `${pet.record.walk} 公里`, stool: pet.record.stool, mood: pet.record.mood,
+  };
+}
+
+function updateRecordsPet(petName) {
+  const pet = petProfiles[petName];
+  if (!pet) return;
+  activeRecordPetName = petName;
+  const avatar = document.querySelector("#records-pet-avatar");
+  avatar.src = pet.avatar;
+  avatar.alt = `${pet.name}照片`;
+  document.querySelector("#records-pet-name").textContent = pet.name;
+  document.querySelector("#records-pet-desc").textContent = pet.desc;
+  document.querySelector("#records-pet-score").textContent = `${pet.score}%`;
+  document.querySelector("#record-score-value").textContent = `${pet.score}%`;
+  document.querySelector("#record-score-circle").textContent = pet.score;
+  document.querySelector("#record-score-copy").textContent = pet.score >= 90
+    ? "状态优秀，继续保持当前饮食和运动节奏。"
+    : "整体状态良好，建议持续关注饮水与每日活动量。";
+  renderDailyRecord();
+}
+
 function renderDailyRecord() {
   const key = formatLocalDateKey(selectedRecordDate);
-  const record = dailyRecordData[key];
-  const card = document.querySelector("#records-page .record-layout .content-card");
+  const record = getRecordForActivePet(key);  const card = document.querySelector("#records-page .record-layout .content-card");
   const list = document.querySelector("#record-metric-list");
   document.querySelector("#record-date-label").textContent = formatShortDate(selectedRecordDate);
   document.querySelector("#record-status").textContent = record ? "已填写" : "无记录";
@@ -426,48 +530,40 @@ function renderDailyRecord() {
   list.innerHTML = metrics.map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
 }
 
-function renderBreedList(category) {
+function renderBreedList(category, resetFilters = true) {
   activeBreedCategory = category;
-  const categoryData = breedData[category];
-  document.querySelector("#breed-list-title").textContent = categoryData.title;
-  document.querySelector("#breed-list").innerHTML = categoryData.breeds
-    .map(
-      (breed, index) => `
-        <button class="breed-list-card" type="button" data-breed-index="${index}">
-          <img src="${breed.image}" alt="${breed.name}" />
-          <div>
-            <strong>${breed.name}</strong>
-            <span>${breed.desc}</span>
-          </div>
-        </button>
-      `,
-    )
-    .join("");
+  if (resetFilters) { breedFilterState = createDefaultBreedFilters(); breedFilterExpanded = false; }
+  document.querySelector("#breed-list-title").textContent = breedData[category].title;
+  renderBreedCards("breed-list", category);
   showWikiView("breed-list-view");
 }
 
-function renderInlineBreedList(category) {
+function renderInlineBreedList(category, resetFilters = true) {
   activeBreedCategory = category;
-  const categoryData = breedData[category];
-  document.querySelector("#wiki-category-title").textContent = categoryData.title;
-  document.querySelectorAll(".wiki-category-grid button").forEach((button) => {
-    button.classList.toggle("active", button.dataset.category === category);
-  });
-  document.querySelector("#wiki-inline-breed-list").innerHTML = categoryData.breeds
-    .map(
-      (breed, index) => `
-        <button class="breed-list-card" type="button" data-breed-index="${index}">
-          <img src="${breed.image}" alt="${breed.name}" />
-          <div>
-            <strong>${breed.name}</strong>
-            <span>${breed.desc}</span>
-          </div>
-        </button>
-      `,
-    )
-    .join("");
+  if (resetFilters) { breedFilterState = createDefaultBreedFilters(); breedFilterExpanded = false; }
+  document.querySelector("#wiki-category-title").textContent = breedData[category].title;
+  document.querySelectorAll(".wiki-category-grid button").forEach((button) => button.classList.toggle("active", button.dataset.category === category));
+  renderBreedCards("wiki-inline-breed-list", category);
 }
 
+document.querySelector("#wiki-page").addEventListener("click", (event) => {
+  const toggleButton = event.target.closest("[data-toggle-breed-filters]");
+  if (toggleButton) {
+    breedFilterExpanded = !breedFilterExpanded;
+    renderBreedCards(toggleButton.closest("#breed-list-filters") ? "breed-list" : "wiki-inline-breed-list", activeBreedCategory);
+    return;
+  }
+  const filterButton = event.target.closest("[data-filter-key]");
+  if (filterButton) {
+    breedFilterState[filterButton.dataset.filterKey] = filterButton.dataset.filterValue;
+    renderBreedCards(filterButton.closest("#breed-list-filters") ? "breed-list" : "wiki-inline-breed-list", activeBreedCategory);
+    return;
+  }
+  if (event.target.closest("[data-reset-breed-filters]")) {
+    breedFilterState = createDefaultBreedFilters();
+    renderBreedCards(event.target.closest("#breed-list-view") ? "breed-list" : "wiki-inline-breed-list", activeBreedCategory);
+  }
+});
 function renderBreedDetail(index) {
   const breed = breedData[activeBreedCategory].breeds[index];
   document.querySelector("#breed-detail-title").textContent = breed.name;
@@ -577,12 +673,138 @@ document.querySelectorAll(".pet-option input").forEach((input) => {
   });
 });
 
+const petProfileExtras = {
+  豆包: { birthDate: "2024-03-18", hobbies: "散步、接飞盘" },
+  奶糖: { birthDate: "2025-01-12", hobbies: "玩球、晒太阳" },
+  团子: { birthDate: "2023-05-06", hobbies: "逗猫棒、钻纸箱" },
+};
+
+function formatPetBirthDate(value) {
+  if (!value) return "未填写";
+  const [year, month, day] = value.split("-");
+  return `${year}年${Number(month)}月${Number(day)}日`;
+}
+function normalizePetProfile(pet) {
+  if (!pet || pet.breed !== undefined) return pet;
+  const [breed = "", ageLabel = "", gender = ""] = pet.desc.split(" · ");
+  pet.breed = breed;
+  pet.age = Math.max(0, Number.parseInt(ageLabel, 10) || 0);
+  pet.gender = gender || "公";
+  const extras = petProfileExtras[pet.name] || {};
+  pet.birthDate ??= extras.birthDate || "";
+  pet.hobbies ??= extras.hobbies || "";
+  return pet;
+}
+
+function setPetDetailEditing(editing) {
+  const card = document.querySelector(".pet-info-card");
+  card.classList.toggle("editing", editing);
+  if (editing) document.querySelector("#pet-detail-name-input").focus();
+}
+
+function renderPetDetail() {
+  const pet = normalizePetProfile(petProfiles[activePetName]);
+  if (!pet) return;
+  const avatar = document.querySelector("#pet-detail-avatar");
+  avatar.src = pet.avatar;
+  avatar.alt = `${pet.name}照片`;
+  document.querySelector("#pet-detail-name-title").textContent = pet.name;
+  document.querySelector("#pet-detail-desc").textContent = pet.desc;
+  document.querySelector("#pet-detail-score").textContent = `${pet.score}%`;
+  document.querySelector("#pet-detail-days-stat").textContent = `${pet.days}天`;
+  document.querySelector("#pet-detail-task-stat").textContent = pet.taskProgress;
+  document.querySelector("#pet-detail-health-stat").textContent = pet.healthLabel;
+
+  document.querySelector("#pet-detail-name-value").textContent = pet.name;
+  document.querySelector("#pet-detail-breed-value").textContent = pet.breed;
+  document.querySelector("#pet-detail-gender-value").textContent = pet.gender;
+  document.querySelector("#pet-detail-age-value").textContent = pet.age;
+  document.querySelector("#pet-detail-days-value").textContent = pet.days;
+  document.querySelector("#pet-detail-days-edit-value").textContent = pet.days;
+  document.querySelector("#pet-detail-birth-value").textContent = formatPetBirthDate(pet.birthDate);
+  document.querySelector("#pet-detail-hobbies-value").textContent = pet.hobbies || "未填写";
+
+  document.querySelector("#pet-detail-name-input").value = pet.name;
+  document.querySelector("#pet-detail-breed-input").value = pet.breed;
+  document.querySelector("#pet-detail-age-input").value = pet.age;
+  document.querySelector("#pet-detail-gender-input").value = pet.gender;
+  document.querySelector("#pet-detail-birth-input").value = pet.birthDate;
+  document.querySelector("#pet-detail-hobbies-input").value = pet.hobbies;
+  setPetDetailEditing(false);
+}
+
+function openActivePetDetail() {
+  renderPetDetail();
+  showPage("pet-detail-page");
+}
+
+function savePetDetail() {
+  const pet = normalizePetProfile(petProfiles[activePetName]);
+  if (!pet) return;
+  const oldName = activePetName;
+  const newName = document.querySelector("#pet-detail-name-input").value.trim();
+  const breed = document.querySelector("#pet-detail-breed-input").value.trim();
+  const age = Math.max(0, Number.parseInt(document.querySelector("#pet-detail-age-input").value, 10) || 0);
+  const gender = document.querySelector("#pet-detail-gender-input").value;
+  const birthDate = document.querySelector("#pet-detail-birth-input").value;
+  const hobbies = document.querySelector("#pet-detail-hobbies-input").value.trim();
+  if (!newName) { showToast("请输入宠物名称"); return; }
+  if (!breed) { showToast("请输入宠物品种"); return; }
+  if (newName !== oldName && petProfiles[newName]) { showToast("宠物名称已存在"); return; }
+
+  pet.name = newName;
+  pet.breed = breed;
+  pet.age = age;
+  pet.gender = gender;
+  pet.birthDate = birthDate;
+  pet.hobbies = hobbies;
+  pet.desc = `${breed} · ${age}岁 · ${gender}`;
+  if (newName !== oldName) {
+    petProfiles[newName] = pet;
+    delete petProfiles[oldName];
+    document.querySelectorAll(`[data-pet="${oldName}"]`).forEach((button) => {
+      button.dataset.pet = newName;
+      const label = button.querySelector("span");
+      if (label) label.textContent = newName;
+    });
+    document.querySelectorAll(`[data-record-pet="${oldName}"]`).forEach((button) => {
+      button.dataset.recordPet = newName;
+      const label = button.querySelector("span");
+      if (label) label.textContent = newName;
+    });
+  }
+  activePetName = newName;
+  updateCurrentPet(newName);
+  if (activeRecordPetName === oldName) updateRecordsPet(newName);
+  renderPetDetail();
+  showToast("宠物信息已保存");
+}
+
+function deleteActivePet() {
+  const names = Object.keys(petProfiles);
+  if (names.length <= 1) { showToast("至少需要保留一只宠物"); return; }
+  const pet = petProfiles[activePetName];
+  const confirmed = pet && window.confirm(`确定要删除宠物“${pet.name}”吗？\n删除后相关任务和健康记录可能无法恢复。`);
+  if (!confirmed) return;
+  const deletedName = activePetName;
+  delete petProfiles[deletedName];
+  document.querySelectorAll(`[data-pet="${deletedName}"], [data-record-pet="${deletedName}"]`).forEach((button) => button.remove());
+  const nextName = Object.keys(petProfiles)[0];
+  document.querySelector(`[data-pet="${nextName}"]`)?.classList.add("active");
+  document.querySelector(`[data-record-pet="${nextName}"]`)?.classList.add("active");
+  updateCurrentPet(nextName);
+  updateRecordsPet(nextName);
+  showPage("home-page", "home-page");
+  showToast("宠物已删除");
+}
 function updateCurrentPet(petName) {
   const pet = petProfiles[petName];
+  activePetName = petName;
   if (!pet) return;
 
   document.querySelector("#current-pet-avatar").src = pet.avatar;
   document.querySelector("#current-pet-avatar").alt = `${pet.name}照片`;
+  document.querySelector("#current-pet-avatar").setAttribute("aria-label", `查看${pet.name}的宠物信息`);
   document.querySelector("#current-pet-name").textContent = pet.name;
   document.querySelector("#current-pet-desc").textContent = pet.desc;
   document.querySelector("#current-pet-days").textContent = `${pet.days}天`;
@@ -611,7 +833,22 @@ document.querySelectorAll(".pet-switcher button").forEach((button) => {
     updateCurrentPet(button.dataset.pet || button.textContent.trim());
   });
 });
+document.querySelectorAll(".records-pet-switcher button").forEach((button) => {
+  button.addEventListener("click", () => {
+    button.parentElement.querySelectorAll("button").forEach((item) => item.classList.remove("active"));
+    button.classList.add("active");
+    updateRecordsPet(button.dataset.recordPet);
+  });
+});
 
+document.querySelector(".open-pet-detail").addEventListener("click", openActivePetDetail);
+document.querySelector(".open-pet-detail").addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openActivePetDetail(); }
+});
+document.querySelector("#pet-detail-edit").addEventListener("click", () => setPetDetailEditing(true));
+document.querySelector("#pet-detail-cancel").addEventListener("click", renderPetDetail);
+document.querySelector("#pet-detail-save").addEventListener("click", savePetDetail);
+document.querySelector("#pet-detail-delete").addEventListener("click", deleteActivePet);
 document.querySelector(".add-pet-button").addEventListener("click", () => {
   petModal.classList.add("active");
   petModal.setAttribute("aria-hidden", "false");

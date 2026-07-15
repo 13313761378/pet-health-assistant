@@ -51,7 +51,7 @@
         <header class="pet-strip">
           <div class="pet-card-main">
             <div class="pet-profile">
-              <img id="current-pet-avatar" src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包照片" />
+              <img id="current-pet-avatar" class="open-pet-detail" src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包照片" role="button" tabindex="0" aria-label="查看豆包的宠物信息" />
               <div>
                 <h1 id="current-pet-name">豆包</h1>
                 <span id="current-pet-desc">柯基 · 2岁 · 公</span>
@@ -195,6 +195,25 @@
           <p class="eyebrow">健康档案</p>
           <h1>记录</h1>
         </header>
+        <section class="records-pet-overview content-card" aria-label="切换宠物健康档案">
+          <div class="records-pet-current">
+            <img id="records-pet-avatar" src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包照片" />
+            <div>
+              <p class="eyebrow">当前宠物</p>
+              <h2 id="records-pet-name">豆包</h2>
+              <span id="records-pet-desc">柯基 · 2岁 · 公</span>
+            </div>
+            <div class="records-health-badge">
+              <span>健康值</span>
+              <strong id="records-pet-score">92%</strong>
+            </div>
+          </div>
+          <div class="records-pet-switcher" aria-label="选择要查看的宠物">
+            <button class="active" type="button" data-record-pet="豆包"><img src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="" /><span>豆包</span><small>92%</small></button>
+            <button type="button" data-record-pet="奶糖"><img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=120&q=80" alt="" /><span>奶糖</span><small>88%</small></button>
+            <button type="button" data-record-pet="团子"><img src="https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=120&q=80" alt="" /><span>团子</span><small>95%</small></button>
+          </div>
+        </section>
 
         <section class="content-card calendar-card">
           <div class="week-header">
@@ -237,10 +256,10 @@
             <div class="score-main">
               <div>
                 <p class="eyebrow">健康值</p>
-                <h2>92%</h2>
-                <p>趋势稳定，运动和饮食节奏较好。</p>
+                <h2 id="record-score-value">92%</h2>
+                <p id="record-score-copy">趋势稳定，运动和饮食节奏较好。</p>
               </div>
-              <div class="score-circle">92</div>
+              <div class="score-circle" id="record-score-circle">92</div>
             </div>
             <div class="line-chart" aria-label="健康趋势图">
               <span style="height: 42%"></span>
@@ -309,6 +328,7 @@
                 </div>
               </button>
             </div>
+            <div class="breed-filter-panel" id="wiki-breed-filters" aria-label="品种筛选"></div>
             <div class="breed-list-grid inline-breed-list" id="wiki-inline-breed-list"></div>
           </section>
         </div>
@@ -362,6 +382,7 @@
             </div>
           </header>
           <section class="content-card">
+            <div class="breed-filter-panel" id="breed-list-filters" aria-label="品种筛选"></div>
             <div class="breed-list-grid" id="breed-list"></div>
           </section>
         </div>
@@ -477,6 +498,92 @@
         </section>
       </section>
 
+      <section class="page" id="pet-detail-page" aria-label="宠物信息">
+        <header class="plain-header message-header">
+          <button class="back-button page-back" type="button" data-back="home-page">返回</button>
+          <div>
+            <p class="eyebrow">宠物档案</p>
+            <h1>宠物信息</h1>
+          </div>
+        </header>
+
+        <section class="pet-detail-hero content-card">
+          <img id="pet-detail-avatar" src="" alt="宠物照片" />
+          <div>
+            <p class="eyebrow">当前宠物</p>
+            <h2 id="pet-detail-name-title">豆包</h2>
+            <span id="pet-detail-desc">柯基 · 2岁 · 公</span>
+          </div>
+          <div class="pet-detail-score"><span>健康值</span><strong id="pet-detail-score">92%</strong></div>
+        </section>
+
+        <section class="pet-detail-stats">
+          <div><span>已陪伴</span><strong id="pet-detail-days-stat">286天</strong></div>
+          <div><span>今日任务</span><strong id="pet-detail-task-stat">3/4</strong></div>
+          <div><span>健康状态</span><strong id="pet-detail-health-stat">优秀</strong></div>
+        </section>
+
+        <section class="content-card pet-info-card pet-detail-form-card">
+          <header class="card-header">
+            <div class="title-group">
+              <p>基本资料</p>
+              <h2>宠物信息</h2>
+            </div>
+            <div class="card-actions">
+              <button class="edit-button" id="pet-detail-edit" type="button">编辑资料</button>
+              <div class="edit-mode-actions">
+                <button class="cancel-button" id="pet-detail-cancel" type="button">取消</button>
+                <button class="save-button" id="pet-detail-save" type="button">保存修改</button>
+              </div>
+            </div>
+          </header>
+
+          <div class="pet-info-content">
+            <div class="info-item pet-name">
+              <div class="info-label">宠物名称</div>
+              <div class="info-value" id="pet-detail-name-value"></div>
+              <div class="edit-control"><input id="pet-detail-name-input" autocomplete="off" /></div>
+            </div>
+            <div class="info-item pet-breed">
+              <div class="info-label">品种</div>
+              <div class="info-value" id="pet-detail-breed-value"></div>
+              <div class="edit-control"><input id="pet-detail-breed-input" autocomplete="off" /></div>
+            </div>
+            <div class="info-item pet-gender">
+              <div class="info-label">性别</div>
+              <div class="info-value" id="pet-detail-gender-value"></div>
+              <div class="edit-control"><select id="pet-detail-gender-input"><option>公</option><option>母</option></select></div>
+            </div>
+            <div class="info-item pet-age">
+              <div class="info-label">年龄</div>
+              <div class="info-value"><span class="number" id="pet-detail-age-value"></span><span class="unit">岁</span></div>
+              <div class="edit-control input-with-unit"><input id="pet-detail-age-input" type="number" min="0" step="1" /><span>岁</span></div>
+            </div>
+            <div class="info-item companion-days">
+              <div class="info-label">已陪伴天数</div>
+              <div class="info-value"><span class="number" id="pet-detail-days-value"></span><span class="unit">天</span></div>
+              <div class="edit-control readonly-value"><span class="number" id="pet-detail-days-edit-value"></span><span class="unit">天</span></div>
+            </div>
+            <div class="info-item pet-birth-date">
+              <div class="info-label">出生日期</div>
+              <div class="info-value" id="pet-detail-birth-value"></div>
+              <div class="edit-control"><input id="pet-detail-birth-input" type="date" /></div>
+            </div>
+            <div class="info-item pet-hobbies">
+              <div class="info-label">爱好</div>
+              <div class="info-value" id="pet-detail-hobbies-value"></div>
+              <div class="edit-control"><input id="pet-detail-hobbies-input" autocomplete="off" placeholder="例如：散步、玩球" /></div>
+            </div>
+          </div>
+
+          <footer class="card-footer">
+            <button class="delete-button" id="pet-detail-delete" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" /></svg>
+              <span>删除宠物</span>
+            </button>
+          </footer>
+        </section>
+      </section>
       <section class="page" id="record-manage-page" aria-label="记录管理">
         <header class="plain-header message-header">
           <button class="back-button page-back" type="button" data-back="home-page">返回</button>
