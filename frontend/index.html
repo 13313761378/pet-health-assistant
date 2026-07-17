@@ -13,6 +13,7 @@
       <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a3 3 0 0 1 3-3h15v18H7a3 3 0 0 0-3 3ZM4 5v18" /></symbol>
       <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" /></symbol>
       <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" /></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></symbol>
       <symbol id="i-bowl" viewBox="0 0 24 24"><path d="M4 11h16l-1.4 5.2A4 4 0 0 1 14.8 19H9.2a4 4 0 0 1-3.8-2.8ZM8 7c0-1.6 1-2 1-3M13 7c0-1.6 1-2 1-3" /></symbol>
       <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3S5 11 5 16a7 7 0 0 0 14 0c0-5-7-13-7-13Z" /></symbol>
       <symbol id="i-walk" viewBox="0 0 24 24"><path d="M13 4a2 2 0 1 0 0 .1M9 21l2-7-3-3 4-5 3 3h3M15 21l-2-6" /></symbol>
@@ -92,6 +93,21 @@
             </div>
             <button class="text-button page-link" type="button" data-page="record-manage-page">记录管理</button>
           </div>
+          <div class="health-record-flow" aria-label="今日健康记录进度">
+            <div class="health-flow-copy">
+              <strong id="health-flow-progress">今日记录 0/3</strong>
+              <span id="health-flow-hint">提交后将自动进入下一只宠物</span>
+            </div>
+            <div class="health-flow-pets" id="health-flow-pets">
+              <button class="health-flow-pet current" type="button" data-health-pet="豆包" aria-label="切换为豆包的健康记录"><i>○</i><b>豆包</b></button>
+              <span class="health-flow-line"></span>
+              <button class="health-flow-pet" type="button" data-health-pet="奶糖" aria-label="切换为奶糖的健康记录"><i>○</i><b>奶糖</b></button>
+              <span class="health-flow-line"></span>
+              <button class="health-flow-pet" type="button" data-health-pet="团子" aria-label="切换为团子的健康记录"><i>○</i><b>团子</b></button>
+            </div>
+            <div class="single-pet-flow-state" id="single-pet-flow-state" aria-live="polite"><i>●</i><span>当前宠物：豆包 · 今天尚未提交健康记录</span></div>
+            <div class="health-flow-route"><span id="health-flow-current">当前：豆包</span><span id="health-flow-next">下一只：奶糖</span></div>
+          </div>
           <div class="health-grid">
             <article class="health-edit-card">
               <div class="health-card-title">
@@ -150,41 +166,65 @@
             </article>
           </div>
           <div class="record-submitted-card">
-            <strong>今日记录已提交</strong>
-            <span>如需检查或修改，请进入记录管理。</span>
+            <div class="health-complete-mark">✓</div>
+            <strong class="health-complete-title">今日健康记录已全部完成</strong>
+            <span class="health-complete-desc">豆包、奶糖和团子的身体状态均已保存。</span>
+            <div class="health-complete-list" id="health-complete-list"></div>
+            <button class="small-button page-link" type="button" data-page="record-manage-page">查看或修改今日记录</button>
           </div>
-          <button class="primary-button toast-button" type="button" data-toast="今日健康记录已保存">提交今日记录</button>
+          <button class="primary-button" id="health-submit-button" type="button">保存并记录下一只：奶糖</button>
         </section>
 
         <section class="content-card">
           <div class="section-title">
             <div>
-              <p class="eyebrow">任务</p>
+              <p class="eyebrow">全部宠物任务</p>
               <h2>今日任务列表</h2>
             </div>
-            <button class="small-button open-task-modal" type="button">新增任务</button>
+            <div class="home-task-heading-actions"><span>6 项</span><button class="small-button open-task-modal" type="button">新增任务</button></div>
           </div>
           <div class="timeline-list home-task-list">
-            <article class="timeline-item">
-              <button class="task-open open-task-modal" type="button">
-                <time>18:30</time>
-                <span><strong>傍晚遛弯</strong><small>避开高温路面，待完成</small></span>
-              </button>
-              <button class="task-complete" type="button" aria-label="完成傍晚遛弯"></button>
-            </article>
-            <article class="timeline-item">
-              <button class="task-open open-task-modal" type="button">
-                <time>21:00</time>
-                <span><strong>清洁耳朵</strong><small>使用温和护理液，待完成</small></span>
-              </button>
-              <button class="task-complete" type="button" aria-label="完成清洁耳朵"></button>
-            </article>
-            <article class="timeline-item done">
+            <article class="timeline-item done" data-task-pet="豆包">
               <button class="task-open open-task-modal" type="button">
                 <time>08:30</time>
-                <span><strong>早餐后补充益生菌</strong><small>拌入半包，已完成</small></span>
+                <div class="home-task-copy"><span class="home-task-pet-badge doubao">豆包</span><strong>早餐后补充益生菌</strong><small>拌入半包，已完成</small></div>
               </button>
               <button class="task-complete" type="button" aria-label="早餐后补充益生菌已完成">✓</button>
+            </article>
+            <article class="timeline-item" data-task-pet="奶糖">
+              <button class="task-open open-task-modal" type="button">
+                <time>10:00</time>
+                <div class="home-task-copy"><span class="home-task-pet-badge naitang">奶糖</span><strong>日常梳毛</strong><small>换毛期增加梳理频率，待完成</small></div>
+              </button>
+              <button class="task-complete" type="button" aria-label="完成奶糖日常梳毛"></button>
+            </article>
+            <article class="timeline-item" data-task-pet="豆包">
+              <button class="task-open open-task-modal" type="button">
+                <time>18:30</time>
+                <div class="home-task-copy"><span class="home-task-pet-badge doubao">豆包</span><strong>傍晚遛弯</strong><small>避开高温路面，待完成</small></div>
+              </button>
+              <button class="task-complete" type="button" aria-label="完成豆包傍晚遛弯"></button>
+            </article>
+            <article class="timeline-item" data-task-pet="团子">
+              <button class="task-open open-task-modal" type="button">
+                <time>19:00</time>
+                <div class="home-task-copy"><span class="home-task-pet-badge tuanzi">团子</span><strong>晚间喂食</strong><small>湿粮 1 份，少量补充饮水，待完成</small></div>
+              </button>
+              <button class="task-complete" type="button" aria-label="完成团子晚间喂食"></button>
+            </article>
+            <article class="timeline-item" data-task-pet="共同任务">
+              <button class="task-open open-task-modal" type="button">
+                <time>20:00</time>
+                <div class="home-task-copy"><span class="home-task-pet-badge shared">共同任务</span><strong>清洗食盆与水碗</strong><small>全部宠物共用区域，待完成</small></div>
+              </button>
+              <button class="task-complete" type="button" aria-label="完成共同任务清洗食盆与水碗"></button>
+            </article>
+            <article class="timeline-item" data-task-pet="奶糖">
+              <button class="task-open open-task-modal" type="button">
+                <time>21:00</time>
+                <div class="home-task-copy"><span class="home-task-pet-badge naitang">奶糖</span><strong>清洁耳朵</strong><small>使用温和护理液，待完成</small></div>
+              </button>
+              <button class="task-complete" type="button" aria-label="完成奶糖清洁耳朵"></button>
             </article>
           </div>
         </section>
@@ -295,42 +335,64 @@
             <h1>百科</h1>
           </header>
 
-          <section class="scan-card">
+          <section class="scan-card wiki-scan-banner wiki-production-scan">
             <div class="scan-icon"><svg><use href="#i-camera"></use></svg></div>
             <div>
               <p class="eyebrow">AI 品种识别</p>
-              <h2>拍照识别宠物品种</h2>
-              <p>支持拍照或从图库选择照片，识别结果先做静态占位。</p>
+              <h2>拍张照片，认识眼前的小伙伴</h2>
+              <p>快速了解可能的品种、性格与养护重点。</p>
             </div>
-            <button class="primary-button open-scan-camera" type="button">拍照识别</button>
+            <button class="primary-button open-scan-camera" type="button"><svg><use href="#i-camera"></use></svg><span>开始识别</span></button>
           </section>
 
-          <section class="content-card">
-            <div class="section-title">
+          <section class="content-card wiki-discovery-card wiki-production-discovery">
+            <div class="wiki-discovery-heading">
               <div>
                 <p class="eyebrow">宠物百科</p>
-                <h2 id="wiki-category-title">狗类百科</h2>
+                <h2>发现适合你的伙伴</h2>
+              </div>
+              <span id="wiki-result-count">6 个品种</span>
+            </div>
+            <div class="wiki-browse-toolbar">
+              <div class="wiki-category-grid" role="tablist" aria-label="宠物类别">
+                <button class="active" type="button" data-category="dog">
+                  <span class="breed-type-icon"><svg aria-label="狗类"><use href="#i-dog-head"></use></svg></span>
+                  <div>
+                    <span>狗狗</span>
+                    <strong>陪伴、运动与训练</strong>
+                  </div>
+                </button>
+                <button type="button" data-category="cat">
+                  <span class="breed-type-icon"><svg aria-label="猫类"><use href="#i-cat-head"></use></svg></span>
+                  <div>
+                    <span>猫咪</span>
+                    <strong>居家、性格与护理</strong>
+                  </div>
+                </button>
+              </div>
+              <div class="wiki-search-row">
+                <label class="wiki-search-box">
+                  <svg><use href="#i-search"></use></svg>
+                  <input id="wiki-search-input" type="search" placeholder="搜索品种，例如柯基、布偶" autocomplete="off" />
+                </label>
+                <button class="wiki-filter-trigger" type="button" data-toggle-home-filters aria-expanded="false">筛选 <span>⌄</span></button>
               </div>
             </div>
-            <div class="wiki-category-grid">
-              <button class="active" type="button" data-category="dog">
-                <span class="breed-type-icon"><svg aria-label="狗类"><use href="#i-dog-head"></use></svg></span>
-                <div>
-                  <span>狗类</span>
-                  <strong>金毛、柯基、边牧等</strong>
-                </div>
-              </button>
-              <button type="button" data-category="cat">
-                <span class="breed-type-icon"><svg aria-label="猫类"><use href="#i-cat-head"></use></svg></span>
-                <div>
-                  <span>猫类</span>
-                  <strong>英短、布偶、暹罗等</strong>
-                </div>
-              </button>
+            <div class="wiki-quick-filters" aria-label="快捷筛选">
+              <button class="active" type="button" data-quick-filter="all">全部</button>
+              <button type="button" data-quick-filter="apartment">公寓适合</button>
+              <button type="button" data-quick-filter="beginner">新手友好</button>
+              <button type="button" data-quick-filter="low-shedding">低掉毛</button>
+              <button type="button" data-quick-filter="low-exercise">低运动量</button>
             </div>
-            <div class="breed-filter-panel" id="wiki-breed-filters" aria-label="品种筛选"></div>
+            <div class="breed-filter-panel wiki-home-filter-panel" id="wiki-breed-filters" aria-label="更多筛选"></div>
+            <div class="wiki-featured-heading">
+              <div><span>热门推荐</span><strong id="wiki-category-title">狗类百科</strong></div>
+              <button type="button" data-open-breed-list>查看全部 <span>→</span></button>
+            </div>
             <div class="breed-list-grid inline-breed-list" id="wiki-inline-breed-list"></div>
           </section>
+
         </div>
 
         <div class="wiki-view" id="scan-camera-view">
@@ -395,20 +457,41 @@
               <h1 id="breed-detail-title">金毛寻回犬</h1>
             </div>
           </header>
-          <section class="breed-cover-card">
-            <img id="breed-detail-image" src="" alt="" />
+          <section class="breed-detail-hero">
+            <div class="breed-detail-photo-frame" id="breed-detail-photo-frame">
+              <img id="breed-detail-image" src="" alt="" />
+            </div>
+            <div class="breed-detail-hero-copy">
+              <div class="breed-detail-kicker"><span id="breed-detail-category">犬类</span><em>品种百科</em></div>
+              <h2 id="breed-detail-name">金毛寻回犬</h2>
+              <p id="breed-detail-intro"></p>
+              <div class="breed-detail-tags" id="breed-detail-tags"></div>
+              <div class="breed-detail-highlights" id="breed-detail-highlights"></div>
+            </div>
           </section>
-          <section class="content-card breed-detail">
+
+          <section class="content-card breed-detail breed-detail-profile">
             <div class="section-title">
               <div>
-                <p class="eyebrow">宠物介绍</p>
-                <h2 id="breed-detail-name">金毛寻回犬</h2>
+                <p class="eyebrow">BREED PROFILE</p>
+                <h2>品种档案</h2>
               </div>
-              <span class="status-pill">品种百科</span>
+              <span class="status-pill">基础参考</span>
             </div>
-            <p class="detail-copy" id="breed-detail-intro"></p>
-            <div class="detail-grid" id="breed-detail-grid"></div>
+            <div class="detail-grid breed-profile-grid" id="breed-detail-grid"></div>
           </section>
+
+          <div class="breed-detail-support-grid">
+            <section class="content-card breed-care-card">
+              <div class="breed-detail-section-heading"><span>日常管理</span><h2>养护要点</h2></div>
+              <div class="breed-care-list" id="breed-care-list"></div>
+            </section>
+            <section class="content-card breed-adoption-card">
+              <div class="breed-detail-section-heading"><span>领养参考</span><h2>适合怎样的家庭？</h2></div>
+              <p id="breed-adoption-copy"></p>
+              <div class="breed-adoption-note"><i>✓</i><span>结合家庭空间、陪伴时间和护理预算综合考虑</span></div>
+            </section>
+          </div>
         </div>
       </section>
 
@@ -436,9 +519,8 @@
           <div class="section-title">
             <div>
               <p class="eyebrow">家庭组</p>
-              <h2>温暖小家</h2>
             </div>
-            <button class="small-button" type="button">加入家庭</button>
+            <button class="small-button" type="button">进入家庭</button>
           </div>
           <div class="family-overview">
             <div class="family-avatar-stack">
@@ -447,8 +529,16 @@
               <span>+2</span>
             </div>
             <div>
-              <strong>4 位成员共同照顾豆包</strong>
-              <span>今日任务已同步给家庭成员</span>
+              <strong>4 位成员共同照顾宠物</strong>
+              <span>照顾记录与家庭成员实时同步</span>
+            </div>
+          </div>
+          <div class="mine-family-activity">
+            <div class="mine-family-activity-heading"><span>家庭动态</span><em>最近更新</em></div>
+            <div class="mine-family-activity-list">
+              <div><i>✓</i><p><strong>妈妈完成了更换饮水</strong><span>今天 11:20 · 豆包</span></p></div>
+              <div><i>↗</i><p><strong>小鱼更新了豆包的体重</strong><span>昨天 08:10 · 12.8 kg</span></p></div>
+              <div><i>＋</i><p><strong>阿辰更新了家庭共享记录</strong><span>昨天 20:36 · 全体可见</span></p></div>
             </div>
           </div>
         </section>
@@ -673,7 +763,24 @@
             <h1>温暖小家</h1>
           </div>
         </header>
-        <section class="content-card secondary-card">
+        <section class="family-collab-hero">
+          <div>
+            <p class="eyebrow">FAMILY CARE</p>
+            <h2>一家人一起照顾豆包</h2>
+            <span>4 位成员共享宠物档案、健康记录和重要变化。</span>
+          </div>
+          <div class="family-collab-progress" aria-label="家庭成员数量">
+            <strong>4<small>人</small></strong>
+            <span>协作成员</span>
+          </div>
+          <div class="family-collab-stats">
+            <div><span>连续协作</span><strong>18 天</strong></div>
+            <div><span>本周共享记录</span><strong>12 条</strong></div>
+            <div><span>在线成员</span><strong>3 人</strong></div>
+          </div>
+        </section>
+
+        <section class="content-card secondary-card family-members-card">
           <div class="message-category">
             <svg><use href="#i-family"></use></svg>
             <div><span>家庭成员</span><strong>小鱼、阿辰、妈妈、爸爸</strong></div>
@@ -687,24 +794,28 @@
           <div class="family-member-list" aria-label="当前家庭成员">
             <div>
               <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="小鱼" />
-              <span><strong>小鱼</strong></span>
-              <b>我</b>
+              <span><strong>小鱼</strong><em>管理员 · 刚刚在线</em></span>
+              <button class="family-role-chip owner" type="button" data-family-role>管理员</button>
             </div>
             <div>
               <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80" alt="阿辰" />
-              <span><strong>阿辰</strong></span>
-              <b>成员</b>
+              <span><strong>阿辰</strong><em>家庭成员 · 10 分钟前</em></span>
+              <button class="family-role-chip" type="button" data-family-role>成员</button>
             </div>
             <div>
               <span class="member-placeholder">妈</span>
-              <span><strong>妈妈</strong></span>
-              <b>成员</b>
+              <span><strong>妈妈</strong><em>家庭成员 · 1 小时前</em></span>
+              <button class="family-role-chip" type="button" data-family-role>成员</button>
             </div>
             <div>
               <span class="member-placeholder">爸</span>
-              <span><strong>爸爸</strong></span>
-              <b>成员</b>
+              <span><strong>爸爸</strong><em>只读成员 · 昨天在线</em></span>
+              <button class="family-role-chip readonly" type="button" data-family-role>只读</button>
             </div>
+          </div>
+          <div class="family-member-actions">
+            <button class="family-member-action-button invite" type="button" data-family-action="invite"><span>＋</span><strong>邀请家庭成员</strong></button>
+            <button class="family-member-action-button temporary" type="button" data-family-action="temporary"><span>♙</span><strong>添加临时照顾人</strong></button>
           </div>
           <div class="family-action-panel">
             <div>
@@ -717,6 +828,7 @@
             </label>
           </div>
         </section>
+
       </section>
 
       <section class="page" id="settings-page" aria-label="系统设置">
@@ -826,6 +938,16 @@
               <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=120&q=80" alt="奶糖" />
               <span>奶糖</span>
             </label>
+            <label class="pet-option">
+              <input type="checkbox" />
+              <img src="assets/breeds/british-shorthair.jpg" alt="团子" />
+              <span>团子</span>
+            </label>
+            <label class="pet-option shared-task-option">
+              <input type="checkbox" />
+              <i class="task-scope-icon">⌂</i>
+              <span>共同任务</span>
+            </label>
           </fieldset>
           <label><span>提醒时间</span><input type="time" value="18:30" /></label>
           <label>
@@ -854,26 +976,30 @@
           </div>
           <button class="icon-button close-pet-modal" type="button" aria-label="关闭">×</button>
         </div>
-        <form class="task-form pet-form">
-          <label class="pet-photo-upload full">
+        <form class="task-form pet-form" id="pet-create-form">
+          <label class="pet-photo-upload full" for="pet-photo-input">
             <span>宠物照片</span>
-            <div>
+            <input id="pet-photo-input" type="file" accept="image/jpeg,image/png,image/webp" hidden />
+            <div id="pet-photo-preview-wrap">
+              <img id="pet-photo-preview" alt="新宠物照片预览" hidden />
               <strong>+</strong>
-              <em>上传照片</em>
+              <em>上传照片（可选，最大 2MB）</em>
             </div>
           </label>
-          <label><span>宠物名称</span><input value="小橘" /></label>
-          <label><span>品种</span><input value="橘猫" /></label>
-          <label><span>年龄</span><input value="1岁" /></label>
+          <label><span>宠物名称</span><input id="pet-create-name" maxlength="64" placeholder="例如：小橘" required /></label>
+          <label><span>宠物类型</span><select id="pet-create-species"><option value="CAT">猫咪</option><option value="DOG">狗狗</option><option value="OTHER">其他</option></select></label>
+          <label><span>品种</span><input id="pet-create-breed" maxlength="100" placeholder="例如：橘猫" required /></label>
+          <label><span>年龄</span><input id="pet-create-age" type="number" min="0" max="40" step="1" value="1" required /></label>
           <label>
             <span>性别</span>
-            <select>
-              <option selected>公</option>
-              <option>母</option>
+            <select id="pet-create-gender">
+              <option value="MALE" selected>公</option>
+              <option value="FEMALE">母</option>
+              <option value="UNKNOWN">未知</option>
             </select>
           </label>
         </form>
-        <button class="primary-button close-pet-modal toast-button" type="button" data-toast="宠物资料已保存">保存展示</button>
+        <button class="primary-button" id="pet-create-submit" type="submit" form="pet-create-form">保存宠物</button>
       </section>
     </div>
 

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>单宠物健康记录布局方案</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #f7f1e8; color: #2c2925; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+      .preview-shell { width: min(100% - 28px, 760px); margin: 0 auto; padding: 32px 0 56px; }
+      .preview-heading { margin-bottom: 24px; }
+      .preview-heading span { color: #e99024; font-size: 12px; font-weight: 700; letter-spacing: .08em; }
+      .preview-heading h1 { margin: 6px 0 8px; font-size: 25px; }
+      .preview-heading p { margin: 0; color: #8b8176; font-size: 13px; line-height: 1.7; }
+      .option { margin-top: 20px; }
+      .option-label { display: flex; align-items: center; justify-content: space-between; margin: 0 4px 9px; }
+      .option-label strong { font-size: 14px; }
+      .option-label span { color: #a0968b; font-size: 11px; }
+      .flow-card { border-radius: 20px; background: linear-gradient(135deg, #fff8ed, #fffdf9); padding: 14px; box-shadow: inset 0 0 0 1px rgba(240,213,178,.7), 0 10px 24px rgba(167,114,45,.06); }
+      .flow-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+      .flow-copy { display: grid; gap: 3px; }
+      .flow-copy strong { font-size: 14px; }
+      .flow-copy small { color: #8b8176; font-size: 11px; }
+      .status-pill { border-radius: 999px; background: #fff1dc; color: #e99024; padding: 6px 10px; font-size: 11px; font-weight: 700; }
+      .flow-route { display: flex; justify-content: space-between; margin-top: 12px; color: #8b8176; font-size: 11px; }
+      .flow-route b { color: #e99024; font-weight: 700; }
+      .pet-avatar { width: 42px; height: 42px; border-radius: 14px; object-fit: cover; }
+      .pet-row { display: flex; align-items: center; gap: 11px; margin-top: 13px; border-radius: 16px; background: rgba(255,255,255,.82); padding: 10px 12px; box-shadow: inset 0 0 0 1px rgba(239,216,186,.78); }
+      .pet-row-copy { display: grid; gap: 2px; min-width: 0; }
+      .pet-row-copy strong { font-size: 14px; }
+      .pet-row-copy span { color: #8b8176; font-size: 11px; }
+      .pet-row em { margin-left: auto; border-radius: 999px; background: #fff4e4; color: #e99024; padding: 6px 9px; font-size: 10px; font-style: normal; font-weight: 700; }
+      .minimal-message { display: flex; align-items: center; gap: 9px; margin-top: 13px; color: #8b8176; font-size: 11px; }
+      .minimal-message i { display: grid; place-items: center; width: 22px; height: 22px; flex: 0 0 22px; border-radius: 50%; background: #ffb84d; color: #fff; font-size: 11px; font-style: normal; }
+      .profile-panel { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; margin-top: 13px; border-radius: 17px; background: linear-gradient(135deg, rgba(255,184,77,.16), rgba(255,255,255,.92)); padding: 12px; }
+      .profile-score { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #fff; color: #e99024; box-shadow: inset 0 0 0 1px rgba(242,164,69,.28); font-size: 11px; font-weight: 800; }
+      .action-strip { display: flex; align-items: center; gap: 10px; margin-top: 13px; border-top: 1px solid rgba(236,215,188,.7); padding-top: 12px; }
+      .action-strip .dot { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #ffb84d; color: #fff; font-weight: 800; }
+      .action-strip div { display: grid; gap: 1px; }
+      .action-strip strong { font-size: 13px; }
+      .action-strip small { color: #8b8176; font-size: 10px; }
+      .action-strip b { margin-left: auto; color: #e99024; font-size: 11px; }
+      .recommend { margin-left: 7px; border-radius: 999px; background: #edf9e8; color: #55a83d; padding: 4px 8px; font-size: 10px; font-weight: 700; }
+      .multi-heading { margin-top: 38px; border-top: 1px solid rgba(224,206,184,.76); padding-top: 30px; }
+      .multi-heading span { color: #e99024; font-size: 12px; font-weight: 700; letter-spacing: .08em; }
+      .multi-heading h2 { margin: 6px 0 7px; font-size: 21px; }
+      .multi-heading p { margin: 0; color: #8b8176; font-size: 12px; line-height: 1.7; }
+      .multi-tabs { display: grid; gap: 8px; margin-top: 13px; padding-bottom: 3px; }
+      .multi-tabs.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .multi-tabs.five { display: flex; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
+      .multi-tabs.five::-webkit-scrollbar { display: none; }
+      .multi-tab { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; border: 0; border-radius: 14px; background: #f6efe6; color: #8b8176; padding: 8px 12px; box-shadow: inset 0 0 0 1px rgba(224,206,184,.58); font-size: 12px; font-weight: 700; white-space: nowrap; }
+      .five .multi-tab { flex: 0 0 126px; scroll-snap-align: start; }
+      .multi-tab i { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.82); color: #a99b8b; box-shadow: inset 0 0 0 1px rgba(215,197,176,.82); font-size: 10px; font-style: normal; }
+      .multi-tab.current { background: #fff; color: #e99024; box-shadow: 0 5px 14px rgba(187,130,60,.13), inset 0 0 0 1px rgba(242,164,69,.34); }
+      .multi-tab.current i { background: #ffb84d; color: #fff; box-shadow: none; }
+      .multi-tab.done { background: #edf8e9; color: #55a83d; box-shadow: inset 0 0 0 1px rgba(126,217,87,.24); }
+      .multi-tab.done i { background: #7ed957; color: #fff; box-shadow: none; }
+      .scroll-tip { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: 7px; color: #a0968b; font-size: 10px; }
+      .scroll-tip b { color: #e99024; font-size: 13px; }
+      @media (max-width: 520px) { .preview-shell { width: min(100% - 20px, 430px); padding-top: 20px; } .preview-heading h1 { font-size: 21px; } }
+    </style>
+  </head>
+  <body>
+    <main class="preview-shell">
+      <header class="preview-heading"><span>单宠物状态 · 布局备选</span><h1>只有一只宠物时，不再显示“切换器”</h1><p>下列方案只影响单宠物状态；增加第二只宠物后仍恢复横向宠物切换列表。</p></header>
+
+      <section class="option">
+        <div class="option-label"><strong>方案 A｜极简状态</strong><span>最少占用空间</span></div>
+        <div class="flow-card"><div class="flow-top"><div class="flow-copy"><strong>今日记录 0/1</strong><small>记录豆包今天的身体状态</small></div><span class="status-pill">待记录</span></div><div class="minimal-message"><i>●</i><span>当前宠物：豆包 · 今天尚未提交健康记录</span></div><div class="flow-route"><span>唯一宠物，无需切换</span><b>完成后结束今日记录</b></div></div>
+      </section>
+
+      <section class="option">
+        <div class="option-label"><strong>方案 B｜宠物信息横排</strong><span class="recommend">推荐</span></div>
+        <div class="flow-card"><div class="flow-top"><div class="flow-copy"><strong>今日记录 0/1</strong><small>提交后完成今天的健康记录</small></div><span class="status-pill">待记录</span></div><div class="pet-row"><img class="pet-avatar" src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包" /><div class="pet-row-copy"><strong>豆包</strong><span>柯基 · 2岁 · 公</span></div><em>当前宠物</em></div><div class="flow-route"><span>今天尚未记录</span><b>保存后完成</b></div></div>
+      </section>
+
+      <section class="option">
+        <div class="option-label"><strong>方案 C｜完整状态卡</strong><span>信息更丰富</span></div>
+        <div class="flow-card"><div class="flow-top"><div class="flow-copy"><strong>豆包的今日健康记录</strong><small>今日进度 0/1</small></div><span class="status-pill">待填写</span></div><div class="profile-panel"><img class="pet-avatar" src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包" /><div class="pet-row-copy"><strong>豆包</strong><span>上次记录：昨天 20:32 · 状态良好</span></div><div class="profile-score">92%</div></div><div class="flow-route"><span>当前健康值 92%</span><b>填写今日数据</b></div></div>
+      </section>
+
+      <section class="option">
+        <div class="option-label"><strong>方案 D｜紧凑操作条</strong><span>接近现有结构</span></div>
+        <div class="flow-card"><div class="flow-top"><div class="flow-copy"><strong>今日记录 0/1</strong><small>只有豆包需要记录</small></div><span class="status-pill">未完成</span></div><div class="action-strip"><span class="dot">●</span><div><strong>豆包</strong><small>当前记录对象</small></div><b>最后一只记录</b></div></div>
+      </section>
+
+      <header class="multi-heading"><span>多宠物状态 · 数量适配</span><h2>出现 2 只或 5 只宠物时的样式</h2><p>从第二只宠物开始恢复切换功能；数量较多时保持按钮宽度，通过横向滑动避免名称被压缩。</p></header>
+
+      <section class="option">
+        <div class="option-label"><strong>2 只宠物｜等宽双列</strong><span>无需滑动</span></div>
+        <div class="flow-card"><div class="flow-top"><div class="flow-copy"><strong>今日记录 0/2</strong><small>提交后自动进入下一只宠物</small></div><span class="status-pill">待记录 2</span></div><div class="multi-tabs two"><button class="multi-tab current" type="button"><i>●</i>豆包</button><button class="multi-tab" type="button"><i>○</i>奶糖</button></div><div class="flow-route"><span>当前：豆包</span><b>下一只：奶糖</b></div></div>
+      </section>
+
+      <section class="option">
+        <div class="option-label"><strong>5 只宠物｜横向滑动</strong><span>固定按钮宽度</span></div>
+        <div class="flow-card"><div class="flow-top"><div class="flow-copy"><strong>今日记录 2/5</strong><small>已完成的宠物使用绿色状态</small></div><span class="status-pill">还剩 3 只</span></div><div class="multi-tabs five"><button class="multi-tab done" type="button"><i>✓</i>豆包</button><button class="multi-tab done" type="button"><i>✓</i>奶糖</button><button class="multi-tab current" type="button"><i>●</i>团子</button><button class="multi-tab" type="button"><i>○</i>小橘</button><button class="multi-tab" type="button"><i>○</i>布丁</button></div><div class="scroll-tip"><span>左右滑动查看全部宠物</span><b>↔</b></div><div class="flow-route"><span>当前：团子</span><b>下一只：小橘</b></div></div>
+      </section>
+    </main>
+  </body>
+</html>

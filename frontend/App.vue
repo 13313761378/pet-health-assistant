@@ -51,6 +51,11 @@ uni-button button::after,
 }
 
 .page-shell {
+  display: grid;
+  gap: 28rpx;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
   padding: 24rpx 24rpx 188rpx;
 }
 

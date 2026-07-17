@@ -5,3 +5,8 @@ unpackage/
 .DS_Store
 .idea/
 .vscode/
+.env
+**/.env
+backend/target/
+backend/*.log
+.mvn/timing.properties

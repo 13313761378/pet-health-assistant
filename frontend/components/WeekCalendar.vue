@@ -24,9 +24,20 @@ export default {
     },
   },
   data() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    const formatKey = (date) => {
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${date.getFullYear()}-${month}-${day}`;
+    };
     return {
-      weekStart: new Date(2026, 5, 1),
-      selectedDate: "2026-06-04",
+      weekStart,
+      selectedDate: formatKey(today),
+      lastTodayKey: formatKey(today),
+      todayTimer: null,
     };
   },
   computed: {
@@ -46,7 +57,24 @@ export default {
       return this.formatFullDate(this.parseDate(this.selectedDate));
     },
   },
+  mounted() {
+    this.todayTimer = setInterval(this.syncToToday, 60 * 1000);
+  },
+  beforeUnmount() {
+    clearInterval(this.todayTimer);
+  },
   methods: {
+    syncToToday() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayKey = this.formatKey(today);
+      if (todayKey === this.lastTodayKey) return;
+      this.lastTodayKey = todayKey;
+      this.selectedDate = todayKey;
+      this.weekStart = new Date(today);
+      this.weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      this.$emit("change", todayKey);
+    },
     changeWeek(offset) {
       this.weekStart.setDate(this.weekStart.getDate() + offset);
       this.weekStart = new Date(this.weekStart);

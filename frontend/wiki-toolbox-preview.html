@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>宠物百科与养宠工具箱预览</title>
+    <link rel="stylesheet" href="wiki-toolbox-preview.css" />
+  </head>
+  <body class="toolbox-page">
+    <svg class="svg-sprite" aria-hidden="true">
+      <symbol id="icon-camera" viewBox="0 0 24 24"><path d="M7 7 8.5 4h7L17 7h3a1 1 0 0 1 1 1v12H4V8a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="4"/></symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+      <symbol id="icon-dog" viewBox="0 0 24 24"><path d="M5 5 3 12l4 2M19 5l2 7-4 2M7 8c1-3 9-3 10 0v7c0 4-2 6-5 6s-5-2-5-6Z"/><path d="M9 13h.01M15 13h.01M10 17h4"/></symbol>
+      <symbol id="icon-cat" viewBox="0 0 24 24"><path d="m5 8-1-5 5 3a9 9 0 0 1 6 0l5-3-1 5v6a7 7 0 0 1-14 0Z"/><path d="M9 12h.01M15 12h.01M10 16h4"/></symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24"><path d="m5 5 14 14M19 5 5 19"/></symbol>
+    </svg>
+
+    <div class="page-shell">
+      <header class="topbar">
+        <div class="brand"><span>🐾</span><div><strong>宠物百科</strong><small>发现更科学的养宠方式</small></div></div>
+        <div class="top-actions"><button class="icon-button" type="button" aria-label="搜索"><svg><use href="#icon-search"/></svg></button><div class="pet-avatar">🐕</div></div>
+      </header>
+
+      <main class="main-content">
+        <section class="scan-banner">
+          <div class="scan-art"><span class="scan-ring"></span><svg><use href="#icon-camera"/></svg><i>✦</i></div>
+          <div class="scan-copy"><span>AI 品种识别</span><h1>拍张照片，认识眼前的小伙伴</h1><p>上传清晰正面照，快速了解可能的品种、性格与养护重点。</p></div>
+          <button class="scan-button" type="button" data-open-scan><svg><use href="#icon-camera"/></svg><span>开始识别</span></button>
+        </section>
+
+        <section class="encyclopedia-section">
+          <div class="section-heading"><div><span>BREED WIKI</span><h2>品种百科</h2><p>从性格、体型到养护难度，找到适合你的伙伴。</p></div><button class="text-link" type="button">查看全部 <svg><use href="#icon-arrow"/></svg></button></div>
+          <div class="wiki-toolbar">
+            <div class="species-tabs">
+              <button class="species-tab active" type="button" data-species="dog"><svg><use href="#icon-dog"/></svg><span>狗狗</span><small>28 个品种</small></button>
+              <button class="species-tab" type="button" data-species="cat"><svg><use href="#icon-cat"/></svg><span>猫咪</span><small>22 个品种</small></button>
+            </div>
+            <label class="search-field"><svg><use href="#icon-search"/></svg><input id="breed-search" type="search" placeholder="搜索品种，例如柯基、布偶"/><kbd>搜索</kbd></label>
+          </div>
+          <div class="filter-row"><button class="filter-chip active" type="button">热门推荐</button><button class="filter-chip" type="button">公寓适合</button><button class="filter-chip" type="button">新手友好</button><button class="filter-chip" type="button">低掉毛</button><button class="filter-chip" type="button">低运动量</button><button class="filter-more" type="button">更多筛选 ＋</button></div>
+          <div class="breed-grid" id="breed-grid"></div>
+        </section>
+
+        <section class="toolbox-section">
+          <div class="section-heading"><div><span>PET TOOLBOX</span><h2>养宠工具箱</h2><p>不只阅读知识，还能马上得到适合自己宠物的参考结果。</p></div><button class="text-link" type="button">全部工具 <svg><use href="#icon-arrow"/></svg></button></div>
+          <div class="toolbox-layout">
+            <button class="tool-card food-card" type="button" data-tool="food">
+              <div class="tool-top"><span class="tool-icon">🥑</span><em>高频工具</em></div><div><small>食物安全查询</small><h3>这个能不能吃？</h3><p>查询犬猫常见食物的安全性、风险等级和误食建议。</p></div><span class="tool-cta">立即查询 <b>→</b></span>
+            </button>
+            <button class="tool-card feeding-card" type="button" data-tool="feeding">
+              <div class="tool-top"><span class="tool-icon">🥣</span><em>按档案估算</em></div><div><small>每日喂食量</small><h3>豆包今天吃多少</h3><p>结合体重、年龄、绝育和活动量计算每日参考范围。</p></div><span class="tool-cta">开始估算 <b>→</b></span>
+            </button>
+            <button class="tool-card body-card" type="button" data-tool="body">
+              <div class="tool-top"><span class="tool-icon">⚖️</span><em>建议每月一次</em></div><div><small>体况评分 BCS</small><h3>不只看体重数字</h3><p>通过肋骨、腰线和腹部状态，判断偏瘦、理想或超重。</p></div><span class="tool-cta">开始评估 <b>→</b></span>
+            </button>
+            <button class="tool-card vaccine-card" type="button" data-tool="vaccine">
+              <div class="tool-top"><span class="tool-icon">💉</span><em class="warning">6 天后</em></div><div><small>疫苗驱虫助手</small><h3>下一次体内驱虫</h3><p>根据历史记录生成时间计划，并可一键添加提醒。</p></div><span class="tool-cta">查看计划 <b>→</b></span>
+            </button>
+          </div>
+          <div class="toolbox-footer">
+            <div><span>💧</span><p><strong>今日饮水参考</strong><small>豆包建议总水分摄入 640–770 ml</small></p></div>
+            <div><span>🎂</span><p><strong>年龄换算</strong><small>豆包 3 岁，相当于人类约 28 岁</small></p></div>
+            <button type="button" data-tool="more">查看更多实用工具</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal-layer" id="tool-modal" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <button class="modal-close" type="button" data-close-modal aria-label="关闭"><svg><use href="#icon-close"/></svg></button>
+        <div id="modal-content"></div>
+      </div>
+    </div>
+
+    <div class="modal-layer" id="scan-modal" aria-hidden="true">
+      <div class="modal-card scan-modal-card" role="dialog" aria-modal="true" aria-labelledby="scan-title">
+        <button class="modal-close" type="button" data-close-scan aria-label="关闭"><svg><use href="#icon-close"/></svg></button>
+        <span class="modal-kicker">AI 品种识别</span><h2 id="scan-title">上传一张宠物照片</h2><p class="modal-lead">建议使用光线充足、正面清晰、无遮挡的照片。</p>
+        <button class="upload-zone" type="button"><span><svg><use href="#icon-camera"/></svg></span><strong>拍照或从相册选择</strong><small>支持 JPG、PNG，大小不超过 10 MB</small></button>
+        <div class="scan-tips"><span>✓ 正面清晰</span><span>✓ 单只宠物</span><span>✓ 光线充足</span></div>
+      </div>
+    </div>
+
+    <script src="wiki-toolbox-preview.js"></script>
+  </body>
+</html>

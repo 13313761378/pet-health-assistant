@@ -23,9 +23,8 @@
       <view class="section-title">
         <view>
           <text class="eyebrow">家庭组</text>
-          <text class="title-main">温暖小家</text>
         </view>
-        <button class="small-button" type="button" @click.stop="openFamily">加入家庭</button>
+        <button class="small-button" type="button" @click.stop="openFamily">进入家庭</button>
       </view>
       <view class="family-overview">
         <view class="family-avatar-stack">
@@ -34,9 +33,15 @@
           <text>+2</text>
         </view>
         <view>
-          <text>4 位成员共同照顾豆包</text>
+          <text>4 位成员共同照顾宠物</text>
           <text>今日任务已同步给家庭成员</text>
         </view>
+      </view>
+      <view class="family-activity">
+        <text class="activity-title">家庭动态</text>
+        <view><text>✓</text><text>小鱼完成了豆包的早餐护理</text><text>08:42</text></view>
+        <view><text>＋</text><text>阿辰添加了共同任务</text><text>昨天</text></view>
+        <view><text>♥</text><text>妈妈更新了团子的健康记录</text><text>昨天</text></view>
       </view>
     </view>
 
@@ -234,6 +239,13 @@ export default {
   color: #8b8176;
   font-size: 24rpx;
 }
+
+.family-activity { display: grid; gap: 14rpx; border-top: 2rpx solid #f2e7d9; padding-top: 26rpx; }
+.activity-title { color: #2c2925; font-size: 28rpx; font-weight: 700; }
+.family-activity view { display: grid; grid-template-columns: 44rpx 1fr auto; align-items: center; gap: 14rpx; border-radius: 26rpx; background: #fffaf3; padding: 18rpx 20rpx; }
+.family-activity view text:first-child { display: flex; align-items: center; justify-content: center; width: 44rpx; height: 44rpx; border-radius: 50%; background: #eef9e9; color: #49aa2e; font-weight: 700; }
+.family-activity view text:nth-child(2) { color: #2c2925; font-size: 24rpx; }
+.family-activity view text:last-child { color: #a3988c; font-size: 20rpx; }
 
 .system-action-list {
   display: grid;

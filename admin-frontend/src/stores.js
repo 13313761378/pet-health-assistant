@@ -1,0 +1,2 @@
+import {defineStore} from 'pinia';import api from './api';
+export const useAuthStore=defineStore('auth',{state:()=>({admin:JSON.parse(localStorage.getItem('admin_profile')||'null')}),actions:{async login(form){const r=await api.post('/auth/login',form);localStorage.setItem('admin_token',r.accessToken);localStorage.setItem('admin_profile',JSON.stringify(r.admin));this.admin=r.admin;},logout(){localStorage.removeItem('admin_token');localStorage.removeItem('admin_profile');this.admin=null;}}});

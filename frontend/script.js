@@ -1,3 +1,9 @@
+document.querySelectorAll("input, select, textarea").forEach((control) => {
+  control.classList.add("native-control");
+  if (control.matches('[type="checkbox"], [type="radio"]')) control.classList.add("native-toggle");
+});
+document.querySelectorAll("label").forEach((label) => label.classList.add("native-label"));
+
 const navButtons = document.querySelectorAll(".bottom-nav button");
 const pages = document.querySelectorAll(".page");
 const modal = document.querySelector("#task-modal");
@@ -7,7 +13,13 @@ let previousPageId = "mine-page";
 let activeBreedCategory = "dog";
 let activeRecordPetName = "豆包";
 let activePetName = "豆包";
+let activeHealthPetName = "豆包";
 let toastTimer;
+const submittedHealthPets = new Set();
+let draggedPetName = "";
+let pointerPetSort = null;
+let suppressPetSelection = false;
+let petProfileOrder = [];
 
 const petProfiles = {
   豆包: {
@@ -63,6 +75,78 @@ const petProfiles = {
   },
 };
 
+const PET_STORAGE_KEY = "pet-health-assistant.pet-profiles.v1";
+const PET_ORDER_STORAGE_KEY = "pet-health-assistant.pet-order.v1";
+const PET_ACCESS_TOKEN_KEY = "petHealthAccessToken";
+let pendingPetAvatar = "";
+
+function syncPetProfileOrder(preferredOrder = petProfileOrder) {
+  const availableNames = Object.keys(petProfiles);
+  const validPreferredNames = Array.isArray(preferredOrder)
+    ? preferredOrder.filter((name, index) => petProfiles[name] && preferredOrder.indexOf(name) === index)
+    : [];
+  petProfileOrder = [
+    ...validPreferredNames,
+    ...availableNames.filter((name) => !validPreferredNames.includes(name)),
+  ];
+}
+
+function getPetNames() {
+  syncPetProfileOrder();
+  return [...petProfileOrder];
+}
+
+function restorePetProfiles() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(PET_STORAGE_KEY) || "null");
+    if (stored && typeof stored === "object" && !Array.isArray(stored) && Object.keys(stored).length > 0) {
+      Object.keys(petProfiles).forEach((name) => delete petProfiles[name]);
+      Object.entries(stored).forEach(([name, pet]) => {
+        if (pet && typeof pet === "object" && pet.name && pet.record) petProfiles[name] = pet;
+      });
+    }
+    const storedOrder = JSON.parse(localStorage.getItem(PET_ORDER_STORAGE_KEY) || "null");
+    syncPetProfileOrder(storedOrder);
+  } catch (error) {
+    console.warn("无法读取本地宠物资料，将使用默认数据", error);
+    syncPetProfileOrder();
+  }
+}
+
+function persistPetProfiles() {
+  try {
+    syncPetProfileOrder();
+    localStorage.setItem(PET_STORAGE_KEY, JSON.stringify(petProfiles));
+    localStorage.setItem(PET_ORDER_STORAGE_KEY, JSON.stringify(petProfileOrder));
+  } catch (error) {
+    console.error("保存宠物资料失败", error);
+    throw new Error("照片或宠物资料占用空间过大，请更换较小的照片");
+  }
+}
+
+function getPetAccessToken() {
+  return localStorage.getItem(PET_ACCESS_TOKEN_KEY) || "";
+}
+
+async function requestPetApi(path, options = {}) {
+  const token = getPetAccessToken();
+  if (!token) return null;
+  const response = await fetch(`/api/pets${path}`, {
+    ...options,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...options.headers },
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.message || "宠物资料同步失败");
+  }
+  return response.status === 204 ? null : response.json();
+}
+
+restorePetProfiles();
+if (!petProfiles[activePetName]) activePetName = getPetNames()[0];
+if (!petProfiles[activeRecordPetName]) activeRecordPetName = activePetName;
+if (!petProfiles[activeHealthPetName]) activeHealthPetName = activePetName;
+
 const recordHistoryData = {
   today: {
     label: "今日数据",
@@ -94,10 +178,41 @@ const recordHistoryData = {
 };
 
 const weekLabels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-let weekStartDate = new Date(2026, 5, 1);
-let selectedRecordDate = new Date(2026, 5, 4);
+const initialRecordDate = new Date();
+initialRecordDate.setHours(0, 0, 0, 0);
+
+function getWeekStart(date) {
+  const monday = new Date(date);
+  const offsetFromMonday = (monday.getDay() + 6) % 7;
+  monday.setDate(monday.getDate() - offsetFromMonday);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+let weekStartDate = getWeekStart(initialRecordDate);
+let selectedRecordDate = new Date(initialRecordDate);
+let lastKnownRecordTodayKey = formatLocalDateKey(initialRecordDate);
+
+const previousRecordDate = new Date(initialRecordDate);
+previousRecordDate.setDate(previousRecordDate.getDate() - 1);
 
 const dailyRecordData = {
+  [formatLocalDateKey(initialRecordDate)]: {
+    weight: "10.8 kg",
+    feeding: "2 勺",
+    water: "正常",
+    walk: "3.2 公里",
+    stool: "正常",
+    mood: "活跃",
+  },
+  [formatLocalDateKey(previousRecordDate)]: {
+    weight: "10.9 kg",
+    feeding: "2 勺",
+    water: "正常",
+    walk: "2.4 公里",
+    stool: "偏软",
+    mood: "正常",
+  },
   "2026-06-04": {
     weight: "10.8 kg",
     feeding: "2 勺",
@@ -131,7 +246,7 @@ const breedData = {
       {
         name: "金毛寻回犬",
         desc: "温顺友好，适合家庭陪伴，运动量较高。",
-        image: "https://images.unsplash.com/photo-1554456854-55a089fd4cb2?auto=format&fit=crop&w=720&q=85",
+        image: "assets/breeds/golden-retriever.jpg",
         intro: "金毛寻回犬性格温和、亲人，对家庭成员非常友好，适合有稳定陪伴和户外活动时间的家庭。",
         info: {
           基本信息: "中大型犬 / 温顺 / 适合家庭",
@@ -147,7 +262,7 @@ const breedData = {
       {
         name: "拉布拉多",
         desc: "亲人稳定，学习能力强，适合陪伴和训练。",
-        image: "https://images.unsplash.com/photo-1561037404-61cd46aa615b?auto=format&fit=crop&w=720&q=85",
+        image: "assets/breeds/labrador-retriever.jpg",
         intro: "拉布拉多活泼友善，适应力强，喜欢与人互动，需要稳定运动和饮食管理。",
         info: {
           基本信息: "中大型犬 / 友好 / 易训练",
@@ -163,7 +278,7 @@ const breedData = {
       {
         name: "柯基犬",
         desc: "活泼机警，腿短身长，需要关注体重。",
-        image: "https://images.unsplash.com/photo-1557973557-ddfa9ee8c8c6?auto=format&fit=crop&w=720&q=85",
+        image: "assets/breeds/corgi.jpg",
         intro: "柯基犬性格活泼亲人，体型小但精力充沛，日常需关注腰椎和体重管理。",
         info: {
           基本信息: "小型犬 / 易胖 / 腿短身长",
@@ -179,7 +294,7 @@ const breedData = {
       {
         name: "边境牧羊犬",
         desc: "聪明敏捷，精力旺盛，需要大量互动。",
-        image: "https://images.unsplash.com/photo-1503256207526-0d5d80fa2f47?auto=format&fit=crop&w=720&q=85",
+        image: "assets/breeds/border-collie.jpg",
         intro: "边境牧羊犬学习能力强，运动和脑力需求都高，适合有训练经验的家庭。",
         info: {
           基本信息: "中型犬 / 高智商 / 高精力",
@@ -195,7 +310,7 @@ const breedData = {
       {
         name: "泰迪",
         desc: "体型小巧，亲人活泼，适合城市家庭。",
-        image: "https://images.unsplash.com/photo-1593134257782-e89567b7718a?auto=format&fit=crop&w=720&q=85",
+        image: "assets/breeds/toy-poodle.jpg",
         intro: "泰迪体型小、适应性强，喜欢陪伴，需要规律梳毛和情绪陪伴。",
         info: {
           基本信息: "小型犬 / 适合公寓 / 需美容",
@@ -211,7 +326,7 @@ const breedData = {
       {
         name: "柴犬",
         desc: "独立机敏，爱干净，有鲜明个性。",
-        image: "https://images.unsplash.com/photo-1589561253898-768105ca91a8?auto=format&fit=crop&w=720&q=85",
+        image: "assets/breeds/shiba-inu.jpg",
         intro: "柴犬独立、警觉，日常较爱干净，但训练需要耐心和一致性。",
         info: {
           基本信息: "中小型犬 / 独立 / 爱干净",
@@ -232,7 +347,7 @@ const breedData = {
       {
         name: "英国短毛猫",
         desc: "性格稳定，圆润安静，适合室内陪伴。",
-        image: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=720&q=85",
+        image: "assets/breeds/british-shorthair.jpg",
         intro: "英国短毛猫性格温和稳定，适合室内饲养，日常需注意体重和毛发护理。",
         info: {
           基本信息: "中型猫 / 圆润 / 室内友好",
@@ -248,7 +363,7 @@ const breedData = {
       {
         name: "美国短毛猫",
         desc: "活泼健康，适应力强，亲人不粘人。",
-        image: "https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?auto=format&fit=crop&w=720&q=85",
+        image: "assets/breeds/american-shorthair.jpg",
         intro: "美国短毛猫体质较好，活泼但不过分粘人，适合多数家庭环境。",
         info: {
           基本信息: "中型猫 / 适应力强 / 体质好",
@@ -264,7 +379,7 @@ const breedData = {
       {
         name: "布偶猫",
         desc: "温柔亲人，外形优雅，需要毛发护理。",
-        image: "https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=720&q=85",
+        image: "assets/breeds/ragdoll.jpg",
         intro: "布偶猫性格温顺，喜欢陪伴，毛发较长，需要定期梳理和清洁。",
         info: {
           基本信息: "大型猫 / 长毛 / 温顺",
@@ -280,7 +395,7 @@ const breedData = {
       {
         name: "暹罗猫",
         desc: "聪明外向，表达欲强，喜欢互动。",
-        image: "https://images.unsplash.com/photo-1568152950566-c1bf43f4ab28?auto=format&fit=crop&w=720&q=85",
+        image: "assets/breeds/siamese.jpg",
         intro: "暹罗猫聪明活泼，喜欢和主人交流，需要较多互动和陪伴。",
         info: {
           基本信息: "中型猫 / 短毛 / 高互动",
@@ -296,7 +411,7 @@ const breedData = {
       {
         name: "缅因猫",
         desc: "体型较大，温和沉稳，需要空间。",
-        image: "https://images.unsplash.com/photo-1618826411640-d6df44dd3f7a?auto=format&fit=crop&w=720&q=85",
+        image: "assets/breeds/maine-coon.jpg",
         intro: "缅因猫体型大但性格温和，毛发较长，需要较大的生活空间和护理时间。",
         info: {
           基本信息: "大型猫 / 长毛 / 温和",
@@ -312,7 +427,7 @@ const breedData = {
       {
         name: "无毛猫",
         desc: "亲人粘人，皮肤护理需求较高。",
-        image: "https://images.unsplash.com/photo-1615796153287-98eacf0abb13?auto=format&fit=crop&w=720&q=85",
+        image: "assets/breeds/sphynx.jpg",
         intro: "无毛猫亲人且需要保暖，皮肤油脂护理和环境温度管理很重要。",
         info: {
           基本信息: "中型猫 / 无毛 / 需保暖",
@@ -361,6 +476,7 @@ const commonBreedFilters = [
 ];
 let breedFilterState = createDefaultBreedFilters();
 let breedFilterExpanded = false;
+let wikiSearchQuery = "";
 
 function createDefaultBreedFilters() {
   return { primary: "全部", personality: "全部", difficulty: "全部", shedding: "全部", exercise: "全部", environment: "全部" };
@@ -369,10 +485,25 @@ function createDefaultBreedFilters() {
 function getFilteredBreeds(category) {
   return breedData[category].breeds
     .map((breed, index) => ({ breed, index, meta: breedFilterMeta[category][breed.name] }))
-    .filter(({ meta }) => !meta || Object.entries(breedFilterState).every(([key, value]) => {
-      if (value === "全部") return true;
-      return Array.isArray(meta[key]) ? meta[key].includes(value) : meta[key] === value;
-    }));
+    .filter(({ breed, meta }) => {
+      const matchesFilters = !meta || Object.entries(breedFilterState).every(([key, value]) => {
+        if (value === "全部") return true;
+        return Array.isArray(meta[key]) ? meta[key].includes(value) : meta[key] === value;
+      });
+      const searchText = `${breed.name} ${breed.desc}`.toLowerCase();
+      return matchesFilters && (!wikiSearchQuery || searchText.includes(wikiSearchQuery));
+    });
+}
+
+function renderHomeFilters(category) {
+  const container = document.querySelector("#wiki-breed-filters");
+  if (!container) return;
+  const groups = [
+    { key: "primary", label: category === "dog" ? "体型分类" : "毛发分类", values: breedFilterOptions[category] },
+    ...commonBreedFilters,
+  ];
+  container.classList.toggle("expanded", breedFilterExpanded);
+  container.innerHTML = `<div class="breed-filter-body">${groups.map((group) => `<div class="breed-filter-row"><span>${group.label}</span><div>${group.values.map((value) => `<button class="${breedFilterState[group.key] === value ? "active" : ""}" type="button" data-filter-key="${group.key}" data-filter-value="${value}">${value}</button>`).join("")}</div></div>`).join("")}</div>`;
 }
 
 function renderBreedFilters(containerId, category, resultCount) {
@@ -396,10 +527,17 @@ function renderBreedFilters(containerId, category, resultCount) {
 
 function renderBreedCards(targetId, category) {
   const matches = getFilteredBreeds(category);
-  renderBreedFilters(targetId === "breed-list" ? "breed-list-filters" : "wiki-breed-filters", category, matches.length);
+  const isHome = targetId === "wiki-inline-breed-list";
+  if (isHome) {
+    renderHomeFilters(category);
+    document.querySelector("#wiki-result-count").textContent = `${matches.length} 个品种`;
+  } else {
+    renderBreedFilters("breed-list-filters", category, matches.length);
+  }
   const target = document.querySelector(`#${targetId}`);
+  const displayedMatches = isHome ? matches.slice(0, 6) : matches;
   target.innerHTML = matches.length
-    ? matches.map(({ breed, index }) => `<button class="breed-list-card" type="button" data-breed-index="${index}"><img src="${breed.image}" alt="${breed.name}" /><div><strong>${breed.name}</strong><span>${breed.desc}</span></div></button>`).join("")
+    ? displayedMatches.map(({ breed, index, meta }) => `<button class="breed-list-card ${isHome ? "wiki-home-breed-card" : ""}" type="button" data-breed-index="${index}"><img class="wiki-breed-image" src="${breed.image}" alt="${breed.name}" loading="lazy" />${isHome ? '<i class="wiki-breed-arrow">→</i>' : ""}<div><small>${meta?.environment || "适合家庭"} · ${meta?.exercise || "中等"}运动</small><strong>${breed.name}</strong><span>${breed.desc}</span></div></button>`).join("")
     : `<div class="breed-filter-empty"><strong>没有找到匹配品种</strong><span>可以减少筛选条件后再试</span><button type="button" data-reset-breed-filters>重置筛选</button></div>`;
 }
 function showWikiView(viewId) {
@@ -477,6 +615,28 @@ function renderWeekCalendar() {
   renderDailyRecord();
 }
 
+function syncRecordCalendarToToday(force = false) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayKey = formatLocalDateKey(today);
+  if (!force && todayKey === lastKnownRecordTodayKey) return;
+  lastKnownRecordTodayKey = todayKey;
+  selectedRecordDate = today;
+  weekStartDate = getWeekStart(today);
+  if (!dailyRecordData[todayKey]) {
+    const pet = petProfiles[activeRecordPetName] || petProfiles[getPetNames()[0]];
+    dailyRecordData[todayKey] = {
+      weight: `${pet?.record?.weight || 0} kg`,
+      feeding: `${pet?.record?.feeding || 0} 勺`,
+      water: pet?.record?.water || "待记录",
+      walk: `${pet?.record?.walk || 0} 公里`,
+      stool: pet?.record?.stool || "待记录",
+      mood: pet?.record?.mood || "待记录",
+    };
+  }
+  renderWeekCalendar();
+}
+
 function formatShortDate(date) {
   return `${date.getMonth() + 1} 月 ${date.getDate()} 日`;
 }
@@ -540,13 +700,48 @@ function renderBreedList(category, resetFilters = true) {
 
 function renderInlineBreedList(category, resetFilters = true) {
   activeBreedCategory = category;
-  if (resetFilters) { breedFilterState = createDefaultBreedFilters(); breedFilterExpanded = false; }
+  if (resetFilters) {
+    breedFilterState = createDefaultBreedFilters();
+    breedFilterExpanded = false;
+    wikiSearchQuery = "";
+    document.querySelector("#wiki-search-input").value = "";
+    document.querySelectorAll("[data-quick-filter]").forEach((button) => button.classList.toggle("active", button.dataset.quickFilter === "all"));
+  }
   document.querySelector("#wiki-category-title").textContent = breedData[category].title;
   document.querySelectorAll(".wiki-category-grid button").forEach((button) => button.classList.toggle("active", button.dataset.category === category));
   renderBreedCards("wiki-inline-breed-list", category);
 }
 
 document.querySelector("#wiki-page").addEventListener("click", (event) => {
+  const homeFilterButton = event.target.closest("[data-toggle-home-filters]");
+  if (homeFilterButton) {
+    breedFilterExpanded = !breedFilterExpanded;
+    homeFilterButton.setAttribute("aria-expanded", String(breedFilterExpanded));
+    renderBreedCards("wiki-inline-breed-list", activeBreedCategory);
+    return;
+  }
+  const quickFilterButton = event.target.closest("[data-quick-filter]");
+  if (quickFilterButton) {
+    const quickFilter = quickFilterButton.dataset.quickFilter;
+    breedFilterState = createDefaultBreedFilters();
+    const quickFilterMap = {
+      apartment: ["environment", "公寓适合"],
+      beginner: ["difficulty", "新手友好"],
+      "low-shedding": ["shedding", "少"],
+      "low-exercise": ["exercise", "低"],
+    };
+    if (quickFilterMap[quickFilter]) {
+      const [key, value] = quickFilterMap[quickFilter];
+      breedFilterState[key] = value;
+    }
+    document.querySelectorAll("[data-quick-filter]").forEach((button) => button.classList.toggle("active", button === quickFilterButton));
+    renderBreedCards("wiki-inline-breed-list", activeBreedCategory);
+    return;
+  }
+  if (event.target.closest("[data-open-breed-list]")) {
+    renderBreedList(activeBreedCategory, false);
+    return;
+  }
   const toggleButton = event.target.closest("[data-toggle-breed-filters]");
   if (toggleButton) {
     breedFilterExpanded = !breedFilterExpanded;
@@ -566,15 +761,35 @@ document.querySelector("#wiki-page").addEventListener("click", (event) => {
 });
 function renderBreedDetail(index) {
   const breed = breedData[activeBreedCategory].breeds[index];
+  const categoryLabel = activeBreedCategory === "dog" ? "犬类" : "猫类";
+  const basicTags = breed.info.基本信息.split("/").map((tag) => tag.trim());
+  const personalityTags = breed.info.性格.split("、").slice(0, 2);
+  const detailIcons = ["◈", "◒", "⌛", "≈", "✦", "♡", "↗", "⌂"];
   document.querySelector("#breed-detail-title").textContent = breed.name;
   document.querySelector("#breed-detail-name").textContent = breed.name;
   document.querySelector("#breed-detail-intro").textContent = breed.intro;
+  document.querySelector("#breed-detail-category").textContent = categoryLabel;
   const image = document.querySelector("#breed-detail-image");
   image.src = breed.image;
   image.alt = `${breed.name}封面图`;
-  document.querySelector("#breed-detail-grid").innerHTML = Object.entries(breed.info)
-    .map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`)
+  document.querySelector("#breed-detail-photo-frame").style.setProperty("--breed-detail-image", `url("${breed.image}")`);
+  document.querySelector("#breed-detail-tags").innerHTML = [...basicTags, ...personalityTags]
+    .map((tag) => `<span>${tag}</span>`)
     .join("");
+  document.querySelector("#breed-detail-highlights").innerHTML = [
+    ["平均寿命", breed.info.寿命],
+    ["运动需求", breed.info.运动量.split("，")[0]],
+    ["掉毛程度", breed.info.掉毛],
+  ].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join("");
+  document.querySelector("#breed-detail-grid").innerHTML = Object.entries(breed.info)
+    .map(([label, value], itemIndex) => `<div><i>${detailIcons[itemIndex] || "•"}</i><p><span>${label}</span><strong>${value}</strong></p></div>`)
+    .join("");
+  document.querySelector("#breed-care-list").innerHTML = [
+    ["餐食管理", breed.info.饭量, "01"],
+    ["活动安排", breed.info.运动量, "02"],
+    ["清洁护理", `掉毛${breed.info.掉毛}，${breed.info.体味}`, "03"],
+  ].map(([title, copy, number]) => `<div><b>${number}</b><p><strong>${title}</strong><span>${copy}</span></p></div>`).join("");
+  document.querySelector("#breed-adoption-copy").textContent = breed.info.领养建议;
   showWikiView("breed-detail-view");
 }
 
@@ -589,12 +804,21 @@ navButtons.forEach((button) => {
       showWikiView("wiki-home-view");
       renderInlineBreedList("dog");
     }
+    if (button.dataset.target === "records-page") syncRecordCalendarToToday(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 });
 
 document.querySelectorAll(".open-task-modal").forEach((button) => {
   button.addEventListener("click", () => {
+    const isFamilyTask = button.dataset.taskContext === "family";
+    modal.dataset.taskContext = isFamilyTask ? "family" : "standard";
+    document.querySelector("#task-modal-title").textContent = isFamilyTask ? "新增家庭协作任务" : "新增 / 编辑任务";
+    document.querySelector("#task-modal .eyebrow").textContent = isFamilyTask ? "家庭协作" : "任务";
+    const taskNameInput = document.querySelector("#task-modal .task-form input");
+    const saveTaskButton = document.querySelector("#task-modal .task-modal > .primary-button");
+    taskNameInput.value = isFamilyTask ? "" : (taskNameInput.value || "傍晚遛弯");
+    saveTaskButton.dataset.toast = isFamilyTask ? "家庭任务已创建并同步给成员" : "任务已保存";
     modal.classList.add("active");
     modal.setAttribute("aria-hidden", "false");
   });
@@ -602,10 +826,24 @@ document.querySelectorAll(".open-task-modal").forEach((button) => {
 
 document.querySelectorAll(".toast-button").forEach((button) => {
   button.addEventListener("click", () => {
-    showToast(button.dataset.toast || "已保存");
-    if (button.closest(".health-panel")) {
-      button.closest(".health-panel").classList.add("submitted");
+    if (button.closest("#task-modal") && modal.dataset.taskContext === "family") {
+      const taskNameInput = document.querySelector("#task-modal .task-form input");
+      const taskTimeInput = document.querySelector('#task-modal .task-form input[type="time"]');
+      const taskName = taskNameInput.value.trim() || "新的家庭任务";
+      const taskTime = taskTimeInput.value || "待设置";
+      document.querySelector("#family-task-list").insertAdjacentHTML("beforeend", `
+        <article class="family-task-item pending" data-family-task="${taskName.replace(/[<>"']/g, "")}">
+          <span class="family-task-icon">📌</span>
+          <div><strong>${taskName.replace(/[<>"']/g, "")}</strong><small>计划 ${taskTime} · 家庭协作任务</small></div>
+          <em>待分配</em>
+          <button class="family-task-status-button" type="button" data-complete-family-task><span>○</span>确认完成</button>
+        </article>`);
+      document.querySelector("#family-activity-list").insertAdjacentHTML("afterbegin", `<article><i>＋</i><div><strong>小鱼添加了${taskName.replace(/[<>"']/g, "")}</strong><span>刚刚 · 家庭任务</span></div></article>`);
+      updateFamilyTaskProgress();
+      button.dataset.toast = "家庭任务已创建并同步给成员";
+      modal.dataset.taskContext = "standard";
     }
+    showToast(button.dataset.toast || "已保存");
   });
 });
 
@@ -627,6 +865,21 @@ document.querySelectorAll(".page-back").forEach((button) => {
   });
 });
 
+function moveCompletedHomeTasksToBottom() {
+  const taskList = document.querySelector("#home-page .home-task-list");
+  if (!taskList) return;
+  const completedTasks = [...taskList.querySelectorAll(".timeline-item.done")];
+  completedTasks
+    .sort((firstTask, secondTask) => {
+      const toMinutes = (task) => {
+        const [hours = 0, minutes = 0] = (task.querySelector("time")?.textContent || "0:0").trim().split(":").map(Number);
+        return hours * 60 + minutes;
+      };
+      return toMinutes(firstTask) - toMinutes(secondTask);
+    })
+    .forEach((item) => taskList.appendChild(item));
+}
+
 document.querySelectorAll("#home-page .task-complete").forEach((button) => {
   button.addEventListener("click", () => {
     const item = button.closest(".timeline-item");
@@ -640,9 +893,12 @@ document.querySelectorAll("#home-page .task-complete").forEach((button) => {
         note.textContent = `${note.textContent}，已完成`;
       }
     }
-    item.parentElement.appendChild(item);
+    const petName = item.dataset.taskPet || "宠物";
+    moveCompletedHomeTasksToBottom();
+    showToast(`${petName}任务已完成`);
   });
 });
+moveCompletedHomeTasksToBottom();
 
 document.querySelectorAll(".close-modal").forEach((button) => {
   button.addEventListener("click", () => {
@@ -696,6 +952,155 @@ function normalizePetProfile(pet) {
   return pet;
 }
 
+function escapePetMarkup(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function renderAllPetControls() {
+  const pets = getPetNames().map((name) => normalizePetProfile(petProfiles[name]));
+  const homeSwitcher = document.querySelector(".pet-switcher");
+  const recordsSwitcher = document.querySelector(".records-pet-switcher");
+  const healthSwitcher = document.querySelector("#health-flow-pets");
+  if (!homeSwitcher || !recordsSwitcher || !healthSwitcher) return;
+
+  healthSwitcher.dataset.count = String(pets.length);
+  healthSwitcher.dataset.overflow = String(pets.length > 4);
+  healthSwitcher.closest(".health-record-flow")?.classList.toggle("single-pet", pets.length === 1);
+
+  homeSwitcher.innerHTML = pets.map((pet) => `
+    <button class="${pet.name === activePetName ? "active" : ""}" type="button" data-pet="${escapePetMarkup(pet.name)}" title="拖动调整宠物顺序" aria-label="${escapePetMarkup(pet.name)}，按住拖动可调整顺序">
+      <img src="${escapePetMarkup(pet.avatar)}" alt="${escapePetMarkup(pet.name)}" />
+      <span>${escapePetMarkup(pet.name)}</span>
+      <i class="pet-drag-grip" aria-hidden="true">⠿</i>
+    </button>`).join("") + `
+    <button class="add-pet-button" type="button"><span class="plus-mark">+</span><span>新增</span></button>`;
+
+  recordsSwitcher.innerHTML = pets.map((pet) => `
+    <button class="${pet.name === activeRecordPetName ? "active" : ""}" type="button" data-record-pet="${escapePetMarkup(pet.name)}">
+      <img src="${escapePetMarkup(pet.avatar)}" alt="" /><span>${escapePetMarkup(pet.name)}</span><small>${pet.score}%</small>
+    </button>`).join("");
+
+  healthSwitcher.innerHTML = pets.map((pet, index) => `${index ? '<span class="health-flow-line"></span>' : ""}
+    <button class="health-flow-pet" type="button" data-health-pet="${escapePetMarkup(pet.name)}" aria-label="切换为${escapePetMarkup(pet.name)}的健康记录">
+      <i>○</i><b>${escapePetMarkup(pet.name)}</b>
+    </button>`).join("");
+}
+
+function clearPetDropIndicators() {
+  document.querySelectorAll(".pet-switcher [data-pet]").forEach((button) => {
+    button.classList.remove("dragging", "drop-before", "drop-after");
+    delete button.dataset.dropPosition;
+    button.style.removeProperty("--drag-x");
+    button.style.removeProperty("--drag-y");
+  });
+}
+
+function markPetDropTarget(button, placeAfter) {
+  document.querySelectorAll(".pet-switcher [data-pet]").forEach((item) => item.classList.remove("drop-before", "drop-after"));
+  if (!button || button.dataset.pet === draggedPetName) return;
+  button.classList.add(placeAfter ? "drop-after" : "drop-before");
+  button.dataset.dropPosition = placeAfter ? "after" : "before";
+}
+
+function reorderPetProfiles(sourceName, targetName, placeAfter = false) {
+  const names = getPetNames();
+  if (!sourceName || !targetName || sourceName === targetName || !petProfiles[sourceName] || !petProfiles[targetName]) return false;
+  const reorderedNames = names.filter((name) => name !== sourceName);
+  let targetIndex = reorderedNames.indexOf(targetName);
+  if (placeAfter) targetIndex += 1;
+  reorderedNames.splice(targetIndex, 0, sourceName);
+  petProfileOrder = reorderedNames;
+  persistPetProfiles();
+  renderAllPetControls();
+  renderHealthRecordFlow();
+  showToast("宠物顺序已保存");
+  return true;
+}
+
+function petApiPayload(pet) {
+  const birthYear = Math.max(1980, new Date().getFullYear() - Number(pet.age || 0));
+  return {
+    name: pet.name,
+    species: pet.species || "OTHER",
+    breed: pet.breed || "",
+    gender: pet.genderCode || "UNKNOWN",
+    birthDate: pet.birthDate || `${birthYear}-01-01`,
+    weight: pet.record?.weight > 0 ? pet.record.weight : null,
+    avatarUrl: pet.avatar?.startsWith("data:") ? null : pet.avatar,
+    hobbies: pet.hobbies || "",
+  };
+}
+
+function defaultPetAvatar(species) {
+  return species === "CAT"
+    ? "https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=640&q=82"
+    : "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=640&q=82";
+}
+
+async function createPetFromForm(event) {
+  event.preventDefault();
+  const name = document.querySelector("#pet-create-name").value.trim();
+  const species = document.querySelector("#pet-create-species").value;
+  const breed = document.querySelector("#pet-create-breed").value.trim();
+  const age = Number(document.querySelector("#pet-create-age").value);
+  const genderCode = document.querySelector("#pet-create-gender").value;
+  const gender = { MALE: "公", FEMALE: "母", UNKNOWN: "未知" }[genderCode];
+  if (!name) { showToast("请输入宠物名称"); return; }
+  if (!breed) { showToast("请输入宠物品种"); return; }
+  if (!Number.isInteger(age) || age < 0 || age > 40) { showToast("请输入0到40岁的整数年龄"); return; }
+  if (petProfiles[name]) { showToast("宠物名称已存在"); return; }
+
+  const pet = {
+    name, species, breed, age, gender, genderCode,
+    desc: `${breed} · ${age}岁 · ${gender}`,
+    avatar: pendingPetAvatar || defaultPetAvatar(species),
+    birthDate: `${Math.max(1980, new Date().getFullYear() - age)}-01-01`,
+    days: 0,
+    score: 100,
+    healthLabel: "待记录",
+    taskProgress: "0/0",
+    hobbies: "",
+    record: { feeding: 0, water: "正常", walk: 0, weight: 0, stool: "正常", mood: "正常" },
+  };
+  const submitButton = document.querySelector("#pet-create-submit");
+  submitButton.disabled = true;
+  submitButton.textContent = "正在保存…";
+  try {
+    const serverPet = await requestPetApi("", { method: "POST", body: JSON.stringify(petApiPayload(pet)) });
+    if (serverPet) pet.id = serverPet.id;
+    petProfiles[name] = pet;
+    petProfileOrder.push(name);
+    persistPetProfiles();
+    activePetName = name;
+    renderAllPetControls();
+    selectHomePet(name);
+    renderHealthRecordFlow();
+    closePetCreateModal();
+    showToast(`${name}已加入宠物列表`);
+  } catch (error) {
+    showToast(error.message || "宠物保存失败");
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "保存宠物";
+  }
+}
+
+function closePetCreateModal() {
+  petModal.classList.remove("active");
+  petModal.setAttribute("aria-hidden", "true");
+  document.querySelector("#pet-create-form").reset();
+  document.querySelector("#pet-create-age").value = 1;
+  pendingPetAvatar = "";
+  const preview = document.querySelector("#pet-photo-preview");
+  preview.src = "";
+  preview.hidden = true;
+  document.querySelector("#pet-photo-preview-wrap").classList.remove("has-preview");
+}
+
 function setPetDetailEditing(editing) {
   const card = document.querySelector(".pet-info-card");
   card.classList.toggle("editing", editing);
@@ -738,7 +1143,7 @@ function openActivePetDetail() {
   showPage("pet-detail-page");
 }
 
-function savePetDetail() {
+async function savePetDetail() {
   const pet = normalizePetProfile(petProfiles[activePetName]);
   if (!pet) return;
   const oldName = activePetName;
@@ -752,6 +1157,16 @@ function savePetDetail() {
   if (!breed) { showToast("请输入宠物品种"); return; }
   if (newName !== oldName && petProfiles[newName]) { showToast("宠物名称已存在"); return; }
 
+  const nextPet = { ...pet, name: newName, breed, age, gender, birthDate, hobbies };
+  if (pet.id && getPetAccessToken()) {
+    try {
+      await requestPetApi(`/${pet.id}`, { method: "PUT", body: JSON.stringify(petApiPayload(nextPet)) });
+    } catch (error) {
+      showToast(error.message || "宠物信息保存失败");
+      return;
+    }
+  }
+
   pet.name = newName;
   pet.breed = breed;
   pet.age = age;
@@ -760,6 +1175,7 @@ function savePetDetail() {
   pet.hobbies = hobbies;
   pet.desc = `${breed} · ${age}岁 · ${gender}`;
   if (newName !== oldName) {
+    petProfileOrder = petProfileOrder.map((name) => name === oldName ? newName : name);
     petProfiles[newName] = pet;
     delete petProfiles[oldName];
     document.querySelectorAll(`[data-pet="${oldName}"]`).forEach((button) => {
@@ -772,28 +1188,56 @@ function savePetDetail() {
       const label = button.querySelector("span");
       if (label) label.textContent = newName;
     });
+    document.querySelectorAll(`[data-health-pet="${oldName}"]`).forEach((button) => {
+      button.dataset.healthPet = newName;
+      button.setAttribute("aria-label", `切换为${newName}的健康记录`);
+      const label = button.querySelector("b");
+      if (label) label.textContent = newName;
+    });
+    if (submittedHealthPets.has(oldName)) {
+      submittedHealthPets.delete(oldName);
+      submittedHealthPets.add(newName);
+    }
+    if (activeHealthPetName === oldName) activeHealthPetName = newName;
   }
   activePetName = newName;
+  persistPetProfiles();
+  renderAllPetControls();
   updateCurrentPet(newName);
   if (activeRecordPetName === oldName) updateRecordsPet(newName);
+  if (activeHealthPetName === newName) updateHealthRecordPet(newName);
+  else renderHealthRecordFlow();
   renderPetDetail();
   showToast("宠物信息已保存");
 }
 
-function deleteActivePet() {
-  const names = Object.keys(petProfiles);
+async function deleteActivePet() {
+  const names = getPetNames();
   if (names.length <= 1) { showToast("至少需要保留一只宠物"); return; }
   const pet = petProfiles[activePetName];
   const confirmed = pet && window.confirm(`确定要删除宠物“${pet.name}”吗？\n删除后相关任务和健康记录可能无法恢复。`);
   if (!confirmed) return;
+  if (pet.id && getPetAccessToken()) {
+    try {
+      await requestPetApi(`/${pet.id}`, { method: "DELETE" });
+    } catch (error) {
+      showToast(error.message || "宠物删除失败");
+      return;
+    }
+  }
   const deletedName = activePetName;
   delete petProfiles[deletedName];
-  document.querySelectorAll(`[data-pet="${deletedName}"], [data-record-pet="${deletedName}"]`).forEach((button) => button.remove());
-  const nextName = Object.keys(petProfiles)[0];
-  document.querySelector(`[data-pet="${nextName}"]`)?.classList.add("active");
-  document.querySelector(`[data-record-pet="${nextName}"]`)?.classList.add("active");
+  petProfileOrder = petProfileOrder.filter((name) => name !== deletedName);
+  submittedHealthPets.delete(deletedName);
+  const nextName = getPetNames()[0];
+  activePetName = nextName;
+  activeRecordPetName = nextName;
+  persistPetProfiles();
+  renderAllPetControls();
   updateCurrentPet(nextName);
   updateRecordsPet(nextName);
+  if (activeHealthPetName === deletedName) updateHealthRecordPet(nextName);
+  else renderHealthRecordFlow();
   showPage("home-page", "home-page");
   showToast("宠物已删除");
 }
@@ -810,6 +1254,12 @@ function updateCurrentPet(petName) {
   document.querySelector("#current-pet-days").textContent = `${pet.days}天`;
   document.querySelector("#current-pet-score").textContent = `${pet.score}%`;
   document.querySelector("#current-pet-health-label").textContent = pet.taskProgress;
+}
+
+function updateHealthRecordPet(petName) {
+  const pet = petProfiles[petName];
+  if (!pet) return;
+  activeHealthPetName = petName;
   document.querySelector("#health-record-title").textContent = `记录${pet.name}今天的身体状态`;
 
   document.querySelector("#home-feeding").value = pet.record.feeding;
@@ -818,27 +1268,251 @@ function updateCurrentPet(petName) {
   setSegmentedValue("#home-water", pet.record.water);
   setSegmentedValue("#home-stool", pet.record.stool);
   setSegmentedValue("#home-mood", pet.record.mood);
+  renderHealthRecordFlow();
+}
 
+function getHealthPetNames() {
+  return getPetNames();
+}
+
+function getNextPendingHealthPet(currentPetName) {
+  const petNames = getHealthPetNames();
+  const currentIndex = petNames.indexOf(currentPetName);
+  for (let offset = 1; offset < petNames.length; offset += 1) {
+    const candidate = petNames[(currentIndex + offset) % petNames.length];
+    if (!submittedHealthPets.has(candidate)) return candidate;
+  }
+  return null;
+}
+
+function selectHomePet(petName) {
+  document.querySelectorAll(".pet-switcher [data-pet]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.pet === petName);
+  });
+  updateCurrentPet(petName);
+}
+
+function renderHealthRecordFlow() {
+  const petNames = getHealthPetNames();
+  const completedCount = petNames.filter((petName) => submittedHealthPets.has(petName)).length;
+  const allCompleted = petNames.length > 0 && completedCount === petNames.length;
   const healthPanel = document.querySelector(".health-panel");
-  if (healthPanel) {
-    healthPanel.classList.remove("submitted");
+  const progress = document.querySelector("#health-flow-progress");
+  const flowHint = document.querySelector("#health-flow-hint");
+  const submitButton = document.querySelector("#health-submit-button");
+  const completeList = document.querySelector("#health-complete-list");
+  const currentLabel = document.querySelector("#health-flow-current");
+  const nextLabel = document.querySelector("#health-flow-next");
+  const singlePetState = document.querySelector("#single-pet-flow-state");
+
+  if (progress) progress.textContent = `今日记录 ${completedCount}/${petNames.length}`;
+  if (flowHint) flowHint.textContent = petNames.length === 1
+    ? `记录${petNames[0]}今天的身体状态`
+    : "提交后将自动进入下一只宠物";
+  document.querySelectorAll("#health-flow-pets [data-health-pet]").forEach((button) => {
+    const petName = button.dataset.healthPet;
+    button.classList.toggle("current", petName === activeHealthPetName && !allCompleted);
+    button.classList.toggle("completed", submittedHealthPets.has(petName));
+    button.setAttribute("aria-pressed", String(petName === activeHealthPetName && !allCompleted));
+    const marker = button.querySelector("i");
+    if (marker) marker.textContent = submittedHealthPets.has(petName) ? "✓" : petName === activeHealthPetName && !allCompleted ? "●" : "○";
+    button.nextElementSibling?.classList.toggle("completed", submittedHealthPets.has(petName));
+  });
+
+  healthPanel?.classList.toggle("submitted", allCompleted);
+  if (completeList) {
+    completeList.innerHTML = petNames.map((petName) => `<span class="health-complete-item"><b class="health-complete-check">✓</b>${petName}<em class="health-complete-status">已记录</em></span>`).join("");
+  }
+  if (allCompleted) {
+    if (currentLabel) currentLabel.textContent = "今日记录已全部完成";
+    if (nextLabel) nextLabel.textContent = `${completedCount}/${petNames.length} 已记录`;
+  }
+  if (!submitButton || allCompleted) return;
+
+  if (petNames.length === 1) {
+    const onlyPetName = petNames[0];
+    if (singlePetState) singlePetState.querySelector("span").textContent = `当前宠物：${onlyPetName} · 今天尚未提交健康记录`;
+    if (currentLabel) currentLabel.textContent = "唯一宠物，无需切换";
+    if (nextLabel) nextLabel.textContent = "完成后结束今日记录";
+    submitButton.textContent = "保存并完成今日记录";
+    return;
+  }
+
+  const nextPetName = getNextPendingHealthPet(activeHealthPetName);
+  if (currentLabel) currentLabel.textContent = `当前：${activeHealthPetName}`;
+  if (nextLabel) nextLabel.textContent = nextPetName ? `下一只：${nextPetName}` : "最后一只记录";
+  if (!nextPetName) {
+    submitButton.textContent = "保存并完成今日记录";
+  } else {
+    const action = submittedHealthPets.has(activeHealthPetName) ? "更新并记录下一只" : "保存并记录下一只";
+    submitButton.textContent = `${action}：${nextPetName}`;
   }
 }
 
-document.querySelectorAll(".pet-switcher button").forEach((button) => {
-  button.addEventListener("click", () => {
-    if (button.classList.contains("add-pet-button")) return;
-    button.parentElement.querySelectorAll("button").forEach((item) => item.classList.remove("active"));
-    button.classList.add("active");
-    updateCurrentPet(button.dataset.pet || button.textContent.trim());
-  });
+function saveActiveHealthRecord() {
+  const pet = petProfiles[activeHealthPetName];
+  if (!pet) return;
+  pet.record.feeding = Number(document.querySelector("#home-feeding").value || 0);
+  pet.record.walk = Number(document.querySelector("#home-walk").value || 0);
+  pet.record.weight = Number(document.querySelector("#home-weight").value || 0);
+  pet.record.water = document.querySelector("#home-water .selected")?.dataset.value || pet.record.water;
+  pet.record.stool = document.querySelector("#home-stool .selected")?.dataset.value || pet.record.stool;
+  pet.record.mood = document.querySelector("#home-mood .selected")?.dataset.value || pet.record.mood;
+  try { persistPetProfiles(); } catch (error) { showToast(error.message); return; }
+
+  const savedPetName = activeHealthPetName;
+  submittedHealthPets.add(savedPetName);
+  const nextPetName = getNextPendingHealthPet(savedPetName);
+  if (nextPetName) {
+    updateHealthRecordPet(nextPetName);
+    showToast(`${savedPetName}的记录已保存，正在记录${nextPetName}`);
+    return;
+  }
+  renderHealthRecordFlow();
+  showToast("所有宠物的今日健康记录已完成");
+}
+
+renderAllPetControls();
+document.querySelector("#health-submit-button")?.addEventListener("click", saveActiveHealthRecord);
+document.querySelector("#health-flow-pets").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-health-pet]");
+  if (button) updateHealthRecordPet(button.dataset.healthPet);
 });
-document.querySelectorAll(".records-pet-switcher button").forEach((button) => {
-  button.addEventListener("click", () => {
+updateHealthRecordPet(activeHealthPetName);
+
+const homePetSwitcher = document.querySelector(".pet-switcher");
+
+homePetSwitcher.addEventListener("click", (event) => {
+  if (suppressPetSelection) {
+    event.preventDefault();
+    return;
+  }
+  const addButton = event.target.closest(".add-pet-button");
+  if (addButton) {
+    petModal.classList.add("active");
+    petModal.setAttribute("aria-hidden", "false");
+    setTimeout(() => document.querySelector("#pet-create-name").focus(), 0);
+    return;
+  }
+  const button = event.target.closest("[data-pet]");
+  if (button) selectHomePet(button.dataset.pet);
+});
+
+function activatePointerPetSort() {
+  if (!pointerPetSort || pointerPetSort.active) return;
+  pointerPetSort.active = true;
+  draggedPetName = pointerPetSort.sourceName;
+  pointerPetSort.sourceButton.classList.add("dragging");
+  pointerPetSort.sourceButton.style.setProperty("--drag-x", "0px");
+  pointerPetSort.sourceButton.style.setProperty("--drag-y", "0px");
+  if (pointerPetSort.pointerType !== "mouse" && navigator.vibrate) navigator.vibrate(25);
+}
+
+function getNearestPetDropTarget(clientX, sourceName, sourceCenterX) {
+  const buttons = [...homePetSwitcher.querySelectorAll("[data-pet]")];
+  const sourceIndex = buttons.findIndex((button) => button.dataset.pet === sourceName);
+  if (sourceIndex < 0 || !Number.isFinite(sourceCenterX)) return null;
+  const candidates = buttons
+    .map((button, index) => {
+      const rect = button.getBoundingClientRect();
+      return { button, index, centerX: rect.left + rect.width / 2 };
+    })
+    .filter(({ button }) => button.dataset.pet !== sourceName);
+  if (!candidates.length) return null;
+  const nearest = candidates.reduce((closest, candidate) => (
+    Math.abs(candidate.centerX - clientX) < Math.abs(closest.centerX - clientX) ? candidate : closest
+  ));
+  const activationBoundary = (sourceCenterX + nearest.centerX) / 2;
+  if (nearest.index > sourceIndex && clientX <= activationBoundary) return null;
+  if (nearest.index < sourceIndex && clientX >= activationBoundary) return null;
+  return { button: nearest.button, placeAfter: sourceIndex < nearest.index };
+}
+
+homePetSwitcher.addEventListener("pointerdown", (event) => {
+  const button = event.target.closest("[data-pet]");
+  if (!button) return;
+  const sourceRect = button.getBoundingClientRect();
+  pointerPetSort = {
+    pointerId: event.pointerId,
+    pointerType: event.pointerType,
+    sourceName: button.dataset.pet,
+    sourceButton: button,
+    startX: event.clientX,
+    startY: event.clientY,
+    sourceCenterX: sourceRect.left + sourceRect.width / 2,
+    active: false,
+    targetButton: null,
+    placeAfter: false,
+    timer: event.pointerType === "mouse" ? null : setTimeout(activatePointerPetSort, 260),
+  };
+  button.setPointerCapture?.(event.pointerId);
+});
+
+homePetSwitcher.addEventListener("pointermove", (event) => {
+  if (!pointerPetSort || event.pointerId !== pointerPetSort.pointerId) return;
+  if (!pointerPetSort.active) {
+    const moved = Math.hypot(event.clientX - pointerPetSort.startX, event.clientY - pointerPetSort.startY);
+    if (pointerPetSort.pointerType === "mouse" && moved > 4) {
+      activatePointerPetSort();
+    } else if (pointerPetSort.pointerType !== "mouse" && moved > 9) {
+      clearTimeout(pointerPetSort.timer);
+      pointerPetSort = null;
+      clearPetDropIndicators();
+      return;
+    }
+  }
+  if (!pointerPetSort?.active) return;
+  event.preventDefault();
+  pointerPetSort.sourceButton.style.setProperty("--drag-x", `${event.clientX - pointerPetSort.startX}px`);
+  pointerPetSort.sourceButton.style.setProperty("--drag-y", `${event.clientY - pointerPetSort.startY}px`);
+  const target = getNearestPetDropTarget(event.clientX, pointerPetSort.sourceName, pointerPetSort.sourceCenterX);
+  if (!target) {
+    pointerPetSort.targetButton = null;
+    clearPetDropIndicators();
+    return;
+  }
+  pointerPetSort.targetButton = target.button;
+  pointerPetSort.placeAfter = target.placeAfter;
+  markPetDropTarget(target.button, target.placeAfter);
+});
+
+function finishPointerPetSort(event, commit = true) {
+  if (!pointerPetSort || event.pointerId !== pointerPetSort.pointerId) return;
+  clearTimeout(pointerPetSort.timer);
+  if (pointerPetSort.active) {
+    suppressPetSelection = true;
+    if (commit && pointerPetSort.targetButton) {
+      reorderPetProfiles(pointerPetSort.sourceName, pointerPetSort.targetButton.dataset.pet, pointerPetSort.placeAfter);
+    }
+    setTimeout(() => { suppressPetSelection = false; }, 0);
+  }
+  draggedPetName = "";
+  pointerPetSort = null;
+  clearPetDropIndicators();
+}
+
+homePetSwitcher.addEventListener("pointerup", finishPointerPetSort);
+homePetSwitcher.addEventListener("pointercancel", (event) => finishPointerPetSort(event, false));
+
+homePetSwitcher.addEventListener("keydown", (event) => {
+  if (!event.altKey || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+  const button = event.target.closest("[data-pet]");
+  if (!button) return;
+  const names = getPetNames();
+  const index = names.indexOf(button.dataset.pet);
+  const targetIndex = event.key === "ArrowLeft" ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= names.length) return;
+  event.preventDefault();
+  reorderPetProfiles(button.dataset.pet, names[targetIndex], event.key === "ArrowRight");
+  document.querySelector(`.pet-switcher [data-pet="${CSS.escape(button.dataset.pet)}"]`)?.focus();
+});
+document.querySelector(".records-pet-switcher").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-record-pet]");
+  if (button) {
     button.parentElement.querySelectorAll("button").forEach((item) => item.classList.remove("active"));
     button.classList.add("active");
     updateRecordsPet(button.dataset.recordPet);
-  });
+  }
 });
 
 document.querySelector(".open-pet-detail").addEventListener("click", openActivePetDetail);
@@ -849,23 +1523,32 @@ document.querySelector("#pet-detail-edit").addEventListener("click", () => setPe
 document.querySelector("#pet-detail-cancel").addEventListener("click", renderPetDetail);
 document.querySelector("#pet-detail-save").addEventListener("click", savePetDetail);
 document.querySelector("#pet-detail-delete").addEventListener("click", deleteActivePet);
-document.querySelector(".add-pet-button").addEventListener("click", () => {
-  petModal.classList.add("active");
-  petModal.setAttribute("aria-hidden", "false");
-});
-
 document.querySelectorAll(".close-pet-modal").forEach((button) => {
-  button.addEventListener("click", () => {
-    petModal.classList.remove("active");
-    petModal.setAttribute("aria-hidden", "true");
-  });
+  button.addEventListener("click", closePetCreateModal);
 });
 
 petModal.addEventListener("click", (event) => {
-  if (event.target === petModal) {
-    petModal.classList.remove("active");
-    petModal.setAttribute("aria-hidden", "true");
+  if (event.target === petModal) closePetCreateModal();
+});
+
+document.querySelector("#pet-create-form").addEventListener("submit", createPetFromForm);
+document.querySelector("#pet-photo-input").addEventListener("change", (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    event.target.value = "";
+    showToast("照片不能超过2MB");
+    return;
   }
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    pendingPetAvatar = String(reader.result || "");
+    const preview = document.querySelector("#pet-photo-preview");
+    preview.src = pendingPetAvatar;
+    preview.hidden = false;
+    document.querySelector("#pet-photo-preview-wrap").classList.add("has-preview");
+  });
+  reader.readAsDataURL(file);
 });
 
 document.querySelectorAll(".calendar-row button").forEach((button) => {
@@ -930,6 +1613,11 @@ document.querySelectorAll(".wiki-category-grid button").forEach((button) => {
   });
 });
 
+document.querySelector("#wiki-search-input").addEventListener("input", (event) => {
+  wikiSearchQuery = event.target.value.trim().toLowerCase();
+  renderBreedCards("wiki-inline-breed-list", activeBreedCategory);
+});
+
 document.querySelector(".open-scan-camera").addEventListener("click", () => {
   showWikiView("scan-camera-view");
 });
@@ -958,5 +1646,71 @@ document.querySelector(".breed-list-back").addEventListener("click", () => {
   showWikiView("wiki-home-view");
 });
 
+function updateFamilyTaskProgress() {
+  const tasks = [...document.querySelectorAll("#family-task-list .family-task-item")];
+  const completedCount = tasks.filter((task) => task.classList.contains("completed")).length;
+  const progressLabel = document.querySelector("#family-task-progress");
+  const progressCircle = document.querySelector(".family-collab-progress strong");
+  if (progressLabel) progressLabel.textContent = `已完成 ${completedCount}/${tasks.length}`;
+  if (progressCircle) progressCircle.innerHTML = `${completedCount}<small>/${tasks.length}</small>`;
+}
+
+document.querySelector("#family-page")?.addEventListener("click", (event) => {
+  const taskButton = event.target.closest("[data-complete-family-task]");
+  if (taskButton) {
+    const task = taskButton.closest(".family-task-item");
+    if (task.classList.contains("completed")) {
+      showToast(`${task.dataset.familyTask}已经记录完成，请勿重复操作`);
+      return;
+    }
+    if (task.dataset.familyTask === "体内驱虫" && !task.dataset.confirmed) {
+      task.dataset.confirmed = "pending";
+      taskButton.innerHTML = "<span>!</span>再次确认用药";
+      showToast("请核对药名和剂量后再次确认");
+      return;
+    }
+    task.classList.remove("pending");
+    task.classList.add("completed");
+    taskButton.innerHTML = "<span>✓</span>已完成";
+    task.querySelector("small").textContent = `刚刚 · 小鱼已完成`;
+    task.querySelector("em").textContent = "小鱼";
+    const activityList = document.querySelector("#family-activity-list");
+    activityList.insertAdjacentHTML("afterbegin", `<article><i>✓</i><div><strong>小鱼完成了${task.dataset.familyTask}</strong><span>刚刚 · 豆包</span></div></article>`);
+    updateFamilyTaskProgress();
+    showToast(`${task.dataset.familyTask}已同步给家庭成员`);
+    return;
+  }
+
+  const roleButton = event.target.closest("[data-family-role]");
+  if (roleButton) {
+    if (roleButton.classList.contains("owner")) {
+      showToast("管理员拥有完整权限，如需移交请进入成员管理");
+      return;
+    }
+    const roles = ["成员", "只读", "临时"];
+    const nextRole = roles[(roles.indexOf(roleButton.textContent.trim()) + 1) % roles.length];
+    roleButton.textContent = nextRole;
+    roleButton.classList.toggle("readonly", nextRole === "只读");
+    showToast(`成员权限已调整为${nextRole}`);
+    return;
+  }
+
+  const actionButton = event.target.closest("[data-family-action]");
+  if (actionButton) {
+    const messages = {
+      invite: "家庭邀请码 FAMILY-2026 已准备分享",
+      temporary: "已打开临时照顾人邀请，可设置失效时间",
+      task: "已打开家庭任务创建",
+      reminder: "已打开共享提醒创建",
+      activity: "已展示全部家庭动态",
+    };
+    showToast(messages[actionButton.dataset.familyAction] || "家庭协作功能已打开");
+  }
+});
+
 renderInlineBreedList("dog");
 renderWeekCalendar();
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) syncRecordCalendarToToday();
+});
+setInterval(syncRecordCalendarToToday, 60 * 1000);

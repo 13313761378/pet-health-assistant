@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:pet_health_test;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+
+app:
+  minio:
+    endpoint: http://127.0.0.1:9000
+    access-key: test-access-key
+    secret-key: test-secret-key
+    bucket: pet-health-assets

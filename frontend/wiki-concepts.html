@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>百科页五方案预览</title>
+    <link rel="stylesheet" href="wiki-concepts.css" />
+  </head>
+  <body class="concept-page">
+    <div class="concept-shell">
+      <header class="concept-topbar">
+        <div class="brand-mark">P</div>
+        <div class="brand-copy"><strong>宠物健康助手</strong><span>百科页概念预览</span></div>
+        <a class="back-link" href="/">返回当前版本</a>
+      </header>
+
+      <section class="concept-intro">
+        <div>
+          <span class="concept-kicker">WIKI CONCEPTS</span>
+          <h1>百科首页的 5 种可能</h1>
+          <p>切换方案，比较不同的信息密度、使用场景和产品定位。</p>
+        </div>
+        <span class="concept-count">5 个方向</span>
+      </section>
+
+      <nav class="scheme-switcher" aria-label="百科方案切换">
+        <button class="scheme-tab active" type="button" data-scheme="a"><b>A</b><span>内容门户</span></button>
+        <button class="scheme-tab" type="button" data-scheme="b"><b>B</b><span>问题场景</span></button>
+        <button class="scheme-tab" type="button" data-scheme="c"><b>C</b><span>个性推荐</span></button>
+        <button class="scheme-tab" type="button" data-scheme="d"><b>D</b><span>成长阶段</span></button>
+        <button class="scheme-tab" type="button" data-scheme="e"><b>E</b><span>综合工作台</span></button>
+      </nav>
+
+      <main class="preview-stage">
+        <section class="concept-panel active" data-panel="a">
+          <div class="panel-heading"><div><span>方案 A · 内容门户型</span><h2>把知识做成一个好逛的内容频道</h2></div><em>低成本 · 高内容密度</em></div>
+          <div class="app-surface">
+            <div class="surface-header"><div><small>宠物百科</small><h3>今天想了解什么？</h3></div><div class="round-avatar">🐶</div></div>
+            <div class="search-bar"><span>⌕</span><p>搜索品种、喂养、疾病或行为问题</p><kbd>搜索</kbd></div>
+            <div class="section-line"><div><small>知识导航</small><strong>按主题探索</strong></div><button class="soft-link demo-action" type="button">全部分类 →</button></div>
+            <div class="topic-grid">
+              <button class="topic-tile demo-action" type="button"><i>🐕</i><strong>品种百科</strong><span>犬猫性格与习性</span></button>
+              <button class="topic-tile demo-action" type="button"><i>🥣</i><strong>科学喂养</strong><span>饮食与营养搭配</span></button>
+              <button class="topic-tile demo-action" type="button"><i>🩺</i><strong>疾病预防</strong><span>常见问题早知道</span></button>
+              <button class="topic-tile demo-action" type="button"><i>🛁</i><strong>日常护理</strong><span>清洁美容小技巧</span></button>
+              <button class="topic-tile demo-action" type="button"><i>🎾</i><strong>行为训练</strong><span>建立更好的习惯</span></button>
+              <button class="topic-tile demo-action" type="button"><i>💉</i><strong>疫苗驱虫</strong><span>周期与注意事项</span></button>
+              <button class="topic-tile demo-action" type="button"><i>🆘</i><strong>宠物急救</strong><span>紧急情况处理</span></button>
+              <button class="topic-tile demo-action" type="button"><i>💡</i><strong>常见误区</strong><span>避开养宠雷区</span></button>
+            </div>
+            <div class="portal-columns">
+              <article class="feature-story"><span>本周专题</span><h3>换季掉毛别慌，7 天护理计划</h3><p>从梳毛、饮食到皮肤观察，跟着清单一步步完成。</p><button class="light-button demo-action" type="button">查看专题</button></article>
+              <div class="popular-card"><div class="section-line compact"><div><small>热门阅读</small><strong>大家都在看</strong></div><span class="rank-tag">TOP 3</span></div><ol class="popular-list"><li><b>01</b><span>猫咪一天应该喝多少水？</span></li><li><b>02</b><span>狗狗不能吃的 12 种食物</span></li><li><b>03</b><span>第一次养猫要准备什么？</span></li></ol></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="concept-panel" data-panel="b">
+          <div class="panel-heading"><div><span>方案 B · 问题场景型</span><h2>从“宠物怎么了”直接进入解决路径</h2></div><em>高频实用 · 强问题导向</em></div>
+          <div class="app-surface">
+            <div class="issue-hero"><div><span>快速自查指南</span><h3>豆包今天怎么了？</h3><p>选择一个最接近的表现，先判断是否需要尽快就医。</p></div><div class="hero-pet">🐕</div></div>
+            <div class="issue-grid">
+              <button class="issue-chip" type="button" data-issue="食欲下降" data-copy="持续超过 24 小时或同时精神萎靡，建议咨询兽医。"><i>🍽️</i><span>不吃东西</span></button>
+              <button class="issue-chip selected" type="button" data-issue="呕吐腹泻" data-copy="先记录频次和排泄物状态；幼宠、频繁呕吐或伴随血液时建议尽快就医。"><i>🤢</i><span>呕吐腹泻</span></button>
+              <button class="issue-chip" type="button" data-issue="皮肤瘙痒" data-copy="检查皮肤红肿、皮屑和寄生虫迹象，避免自行使用人用药。"><i>🐾</i><span>频繁抓挠</span></button>
+              <button class="issue-chip" type="button" data-issue="精神异常" data-copy="观察呼吸、体温和行动状态；无法站立或呼吸急促时应立即就医。"><i>😴</i><span>精神不好</span></button>
+              <button class="issue-chip" type="button" data-issue="异常掉毛" data-copy="区分季节性换毛和局部脱毛，局部红肿结痂需要进一步检查。"><i>🧹</i><span>掉毛严重</span></button>
+              <button class="issue-chip" type="button" data-issue="行为异常" data-copy="先排除疼痛、环境变化和精力过剩，再制定行为调整计划。"><i>🧸</i><span>乱叫拆家</span></button>
+              <button class="issue-chip" type="button" data-issue="体重变化" data-copy="连续称重并结合体况评分，短期明显增减需要关注。"><i>⚖️</i><span>体重异常</span></button>
+              <button class="issue-chip danger" type="button" data-issue="误食异物" data-copy="不要擅自催吐。请确认误食物品、时间和剂量，并立即联系兽医。"><i>⚠️</i><span>误食异物</span></button>
+            </div>
+            <div class="triage-card"><div class="triage-status"><span>当前选择</span><strong id="issue-title">呕吐腹泻</strong></div><p id="issue-copy">先记录频次和排泄物状态；幼宠、频繁呕吐或伴随血液时建议尽快就医。</p><div class="triage-actions"><button class="primary-action demo-action" type="button">开始 3 步判断</button><button class="secondary-action demo-action" type="button">记录到健康档案</button></div><small>内容仅用于健康管理与就医参考，不替代专业诊断。</small></div>
+            <div class="care-path"><div><b>1</b><span><strong>描述表现</strong><small>症状、次数、持续时间</small></span></div><i></i><div><b>2</b><span><strong>判断紧急程度</strong><small>识别危险信号</small></span></div><i></i><div><b>3</b><span><strong>给出下一步</strong><small>观察、记录或就医</small></span></div></div>
+          </div>
+        </section>
+
+        <section class="concept-panel" data-panel="c">
+          <div class="panel-heading"><div><span>方案 C · 个性推荐型</span><h2>围绕每一只宠物生成专属知识流</h2></div><em>强个性化 · 高产品关联</em></div>
+          <div class="app-surface">
+            <div class="personal-hero"><div class="pet-avatar-large">🐕</div><div><span>豆包的养护指南</span><h3>早上好，今天重点关注体重</h3><p>3 岁 · 柯基 · 12.8 kg</p></div><button class="pet-switch demo-action" type="button">切换宠物⌄</button></div>
+            <div class="daily-insight"><div class="insight-icon">↗</div><div><span>来自最近 4 次健康记录</span><h3>体重较上月增加 0.6 kg</h3><p>柯基需要注意体重与腰椎压力，建议本周增加两次轻量散步。</p></div><button class="primary-action demo-action" type="button">查看趋势</button></div>
+            <div class="section-line"><div><small>为豆包推荐</small><strong>最相关的养护知识</strong></div><button class="soft-link demo-action" type="button">调整偏好 →</button></div>
+            <div class="recommend-grid">
+              <article class="recommend-card orange"><div><span>体重管理</span><i>8 分钟</i></div><h3>柯基健康体重判断指南</h3><p>学会体况评分，比只看公斤数更准确。</p><button class="light-button demo-action" type="button">开始阅读</button></article>
+              <article class="recommend-card green"><div><span>运动计划</span><i>可加入日程</i></div><h3>低冲击散步计划</h3><p>保护关节和腰椎，逐步提升活动量。</p><button class="light-button demo-action" type="button">加入计划</button></article>
+              <article class="recommend-card blue"><div><span>品种关注</span><i>柯基专属</i></div><h3>腰椎与关节的日常保护</h3><p>从抱姿、地面防滑到营养管理。</p><button class="light-button demo-action" type="button">查看建议</button></article>
+            </div>
+            <div class="personal-footer"><div><span>💉</span><p><strong>驱虫提醒</strong><small>距离下次体内驱虫还有 6 天</small></p></div><button class="secondary-action demo-action" type="button">查看日程</button></div>
+          </div>
+        </section>
+
+        <section class="concept-panel" data-panel="d">
+          <div class="panel-heading"><div><span>方案 D · 成长阶段型</span><h2>按生命周期组织知识与任务</h2></div><em>体系清晰 · 新手友好</em></div>
+          <div class="app-surface">
+            <div class="stage-hero"><span>成长陪伴</span><h3>每个阶段，都有不一样的照顾重点</h3><p>选择当前阶段，获得对应的喂养、护理、训练与健康任务。</p></div>
+            <div class="stage-tabs"><button class="stage-tab" type="button" data-stage="幼年期">幼年期<small>0–1 岁</small></button><button class="stage-tab active" type="button" data-stage="成年期">成年期<small>1–7 岁</small></button><button class="stage-tab" type="button" data-stage="老年期">老年期<small>7 岁以上</small></button><button class="stage-tab" type="button" data-stage="特殊时期">特殊时期<small>恢复与适应</small></button></div>
+            <div class="stage-layout">
+              <div class="stage-guide"><span>当前阶段指南</span><h3 id="stage-title">成年期 · 稳定健康习惯</h3><p id="stage-copy">维持理想体重、规律运动和年度体检，是成年阶段的三个核心目标。</p><div class="stage-metrics"><div><small>建议体检</small><strong>每年 1 次</strong></div><div><small>体重记录</small><strong>每月 1 次</strong></div><div><small>口腔检查</small><strong>每周 1 次</strong></div></div><button class="primary-action demo-action" type="button">查看完整阶段指南</button></div>
+              <div class="task-card"><div class="section-line compact"><div><small>阶段任务</small><strong>本月完成 3/5</strong></div><span class="progress-ring">60%</span></div><div class="task-list" id="stage-tasks"><label class="task-row done"><i>✓</i><span>完成本月体重记录</span></label><label class="task-row done"><i>✓</i><span>更新驱虫计划</span></label><label class="task-row done"><i>✓</i><span>检查牙齿与口腔</span></label><label class="task-row"><i></i><span>完成一次体况评分</span></label><label class="task-row"><i></i><span>阅读关节保护指南</span></label></div></div>
+            </div>
+            <div class="special-strip"><span>特殊时期</span><button class="mini-pill demo-action" type="button">刚到新家</button><button class="mini-pill demo-action" type="button">换粮期</button><button class="mini-pill demo-action" type="button">绝育前后</button><button class="mini-pill demo-action" type="button">术后恢复</button></div>
+          </div>
+        </section>
+
+        <section class="concept-panel" data-panel="e">
+          <div class="panel-heading"><div><span>方案 E · 综合工作台型</span><h2>把百科变成健康助手的“发现中心”</h2></div><em>功能最全 · 推荐方向</em></div>
+          <div class="app-surface dashboard-surface">
+            <div class="dashboard-head"><div><small>豆包的今日发现</small><h3>把知识变成可执行的照顾</h3></div><div class="dashboard-tools"><button class="circle-tool demo-action" type="button">⌕</button><button class="circle-tool demo-action" type="button">♡</button><span>🐕</span></div></div>
+            <div class="today-card"><div><span>今日重点</span><h3>最近体重有所上升</h3><p>今天晚饭可减少约 10% 主粮，并安排一次 20 分钟的轻量散步。</p><div><button class="white-action demo-action" type="button">记录晚餐</button><button class="ghost-action demo-action" type="button">加入散步提醒</button></div></div><div class="score-orbit"><strong>82</strong><span>健康指数</span></div></div>
+            <div class="dashboard-grid">
+              <div class="dashboard-main">
+                <div class="section-line"><div><small>快速处理</small><strong>现在需要什么帮助？</strong></div><button class="soft-link demo-action" type="button">更多问题 →</button></div>
+                <div class="quick-help"><button class="quick-help-item demo-action" type="button"><i>🤢</i><span>呕吐腹泻</span></button><button class="quick-help-item demo-action" type="button"><i>🥣</i><span>饮食问题</span></button><button class="quick-help-item demo-action" type="button"><i>🧴</i><span>皮肤护理</span></button><button class="quick-help-item demo-action" type="button"><i>🆘</i><span>紧急情况</span></button></div>
+                <div class="section-line spaced"><div><small>个性推荐</small><strong>更适合豆包的内容</strong></div></div>
+                <div class="feed-list"><article><div class="feed-art orange-art">⚖️</div><div><span>体重管理 · 6 分钟</span><h3>柯基如何维持理想体态</h3><p>结合体况评分调整每日食量。</p></div><button class="bookmark demo-action" type="button">♡</button></article><article><div class="feed-art green-art">🌿</div><div><span>夏季专题 · 8 分钟</span><h3>高温天气散步时间表</h3><p>避开中暑风险，选择安全时段。</p></div><button class="bookmark demo-action" type="button">♡</button></article></div>
+              </div>
+              <aside class="dashboard-side"><div class="side-card"><span>本周养护</span><div class="care-score"><strong>4</strong><small>/ 6 项已完成</small></div><div class="score-bar"><i></i></div><button class="secondary-action demo-action" type="button">查看养护计划</button></div><div class="side-card season"><span>季节提醒</span><h3>夏季防暑指南</h3><p>室温、饮水与外出注意事项</p><button class="light-button demo-action" type="button">去看看 →</button></div><div class="side-card history"><span>继续阅读</span><p><i>🐾</i><strong>狗狗关节保护</strong></p><small>上次看到 42%</small></div></aside>
+            </div>
+          </div>
+        </section>
+      </main>
+      <div class="preview-toast" id="preview-toast">这是交互示意</div>
+    </div>
+    <script src="wiki-concepts.js"></script>
+  </body>
+</html>

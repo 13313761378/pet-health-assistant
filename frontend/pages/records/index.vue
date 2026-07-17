@@ -33,7 +33,8 @@
 </template>
 
 <script>
-import { pet, tasks, weekDays } from "@/common/mock.js";
+import { weekDays } from "@/common/mock.js";
+import { appState, findPet } from "@/common/store.js";
 import WeekCalendar from "@/components/WeekCalendar.vue";
 import HealthScoreCard from "@/components/HealthScoreCard.vue";
 import TaskTimeline from "@/components/TaskTimeline.vue";
@@ -46,7 +47,7 @@ export default {
   },
   data() {
     return {
-      pet,
+      appState,
       weekDays,
       selectedDate: "2026-06-04",
       dailyRecords: {
@@ -54,13 +55,15 @@ export default {
         "2026-06-05": { weight: "10.8 kg", feeding: "3 勺", water: "多", walk: "2.8 公里", stool: "正常", mood: "低迷" },
         "2026-06-06": { weight: "10.9 kg", feeding: "2 勺", water: "正常", walk: "2.4 公里", stool: "偏软", mood: "正常" },
       },
-      recordTasks: [
-        { ...tasks[0], name: "梳毛", time: "10:00", note: "换毛期增加频率" },
-        { ...tasks[1], name: "晚间喂食", time: "19:30", note: "少量多餐" },
-      ],
     };
   },
   computed: {
+    pet() {
+      return findPet(this.appState.profilePetName);
+    },
+    recordTasks() {
+      return this.appState.tasks;
+    },
     currentRecord() {
       return this.dailyRecords[this.selectedDate];
     },

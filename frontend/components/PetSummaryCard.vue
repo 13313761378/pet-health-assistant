@@ -35,14 +35,14 @@
           <button type="button" @click="closeAddPet">×</button>
         </view>
         <view class="pet-form">
-          <view class="photo-upload">
-            <text>+</text>
-            <text>上传照片</text>
+          <view class="photo-upload" @click="choosePetPhoto">
+            <image v-if="form.avatar" :src="form.avatar" mode="aspectFill" />
+            <template v-else><text>+</text><text>上传照片</text></template>
           </view>
-          <label><text>宠物名称</text><input value="小橘" /></label>
-          <label><text>品种</text><input value="橘猫" /></label>
-          <label><text>年龄</text><input value="1岁" /></label>
-          <label><text>性别</text><input value="公" /></label>
+          <label><text>宠物名称</text><input v-model="form.name" placeholder="例如：小橘" /></label>
+          <label><text>品种</text><input v-model="form.breed" placeholder="例如：橘猫" /></label>
+          <label><text>年龄</text><input v-model.number="form.age" type="number" /></label>
+          <label><text>性别</text><picker :range="genderOptions" @change="changeGender"><text>{{ form.gender }}</text></picker></label>
         </view>
         <button class="save-button" type="button" @click="saveAddPet">保存展示</button>
       </view>
@@ -56,6 +56,8 @@ export default {
   data() {
     return {
       showAddForm: false,
+      genderOptions: ["公", "母", "未知"],
+      form: { name: "", breed: "", age: 1, gender: "公", avatar: "" },
     };
   },
   props: {
@@ -82,10 +84,32 @@ export default {
     closeAddPet() {
       this.showAddForm = false;
     },
+    choosePetPhoto() {
+      uni.chooseImage({
+        count: 1,
+        sizeType: ["compressed"],
+        success: ({ tempFilePaths }) => { this.form.avatar = tempFilePaths[0] || ""; },
+      });
+    },
+    changeGender(event) {
+      this.form.gender = this.genderOptions[Number(event.detail.value)] || "未知";
+    },
     saveAddPet() {
+      const name = this.form.name.trim();
+      const breed = this.form.breed.trim();
+      if (!name || !breed) {
+        uni.showToast({ title: "请填写宠物名称和品种", icon: "none" });
+        return;
+      }
+      if (this.pets.some((pet) => pet.name === name)) {
+        uni.showToast({ title: "宠物名称已存在", icon: "none" });
+        return;
+      }
+      this.$emit("add", { ...this.form, name, breed, age: Number(this.form.age) || 0 });
       this.showAddForm = false;
+      this.form = { name: "", breed: "", age: 1, gender: "公", avatar: "" };
       uni.showToast({
-        title: "宠物资料已保存",
+        title: `${name}已加入宠物列表`,
         icon: "none",
       });
     },
@@ -294,6 +318,12 @@ export default {
   border-radius: 40rpx;
   background: #fffaf3;
   color: #e99024;
+  overflow: hidden;
+}
+
+.photo-upload image {
+  width: 100%;
+  height: 260rpx;
 }
 
 .photo-upload text:first-child {
