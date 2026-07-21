@@ -1,88 +1,132 @@
 import { reactive } from "vue";
-import { pets as petSeeds } from "@/common/mock.js";
 
+const PETS_KEY = "pet-health-assistant.pets.v2";
+const TASKS_KEY = "pet-health-assistant.tasks.v2";
+const HEALTH_KEY = "pet-health-assistant.health-records.v2";
 const clone = (value) => JSON.parse(JSON.stringify(value));
+const blankRecord = () => ({ feeding: 0, water: "正常", walk: 0, weight: 0, stool: "正常", mood: "正常" });
+const emptyPet = { id: "", name: "", desc: "", avatar: "", days: 0, healthScore: 0, healthLabel: "待记录", taskProgress: "0/0", healthRecord: blankRecord() };
 
-function loadStoredPets() {
+function createId(prefix) {
+  return prefix + "-" + (globalThis.crypto?.randomUUID?.() || Date.now() + "-" + Math.random().toString(16).slice(2));
+}
+
+function loadArray(key) {
   try {
-    const stored = uni.getStorageSync("pet-health-assistant.pets.v1");
-    return Array.isArray(stored) && stored.length ? stored : clone(petSeeds);
+    const stored = uni.getStorageSync(key);
+    return Array.isArray(stored) ? stored : [];
   } catch (error) {
     console.warn(error);
-    return clone(petSeeds);
+    return [];
   }
 }
 
-const initialPets = loadStoredPets();
+function loadObject(key) {
+  try {
+    const stored = uni.getStorageSync(key);
+    return stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+  } catch (error) {
+    console.warn(error);
+    return {};
+  }
+}
+
+const initialPets = loadArray(PETS_KEY).map((pet) => ({ ...pet, id: String(pet.id || createId("pet")), healthRecord: pet.healthRecord || blankRecord() }));
+const firstPetId = initialPets[0]?.id || "";
 
 export const appState = reactive({
   pets: initialPets,
-  profilePetName: initialPets[0]?.name || "",
-  healthPetName: initialPets[0]?.name || "",
-  submittedHealthPets: [],
-  tasks: [
-    { id: "task-1", petName: "豆包", scope: "pet", name: "早餐后补充益生菌", time: "08:30", note: "拌入半包，已完成", done: true },
-    { id: "task-2", petName: "奶糖", scope: "pet", name: "日常梳毛", time: "10:00", note: "换毛期增加梳理频率，待完成", done: false },
-    { id: "task-3", petName: "豆包", scope: "pet", name: "傍晚遛弯", time: "18:30", note: "避开高温路面，待完成", done: false },
-    { id: "task-4", petName: "团子", scope: "pet", name: "晚间喂食", time: "19:00", note: "湿粮 1 份，少量补充饮水，待完成", done: false },
-    { id: "task-5", petName: "共同任务", scope: "shared", name: "清洗食盆与水碗", time: "20:00", note: "全部宠物共用区域，待完成", done: false },
-    { id: "task-6", petName: "奶糖", scope: "pet", name: "清洁耳朵", time: "21:00", note: "使用温和护理液，待完成", done: false },
-  ],
+  profilePetId: firstPetId,
+  healthPetId: firstPetId,
+  submittedHealthPetIds: [],
+  tasks: loadArray(TASKS_KEY),
+  healthRecords: loadObject(HEALTH_KEY),
 });
 
-export function findPet(name) {
-  return appState.pets.find((pet) => pet.name === name) || appState.pets[0];
+function persistAll() {
+  try {
+    uni.setStorageSync(PETS_KEY, clone(appState.pets));
+    uni.setStorageSync(TASKS_KEY, clone(appState.tasks));
+    uni.setStorageSync(HEALTH_KEY, clone(appState.healthRecords));
+  } catch (error) {
+    console.warn(error);
+  }
 }
 
-export function selectProfilePet(name) {
-  if (appState.pets.some((pet) => pet.name === name)) appState.profilePetName = name;
+export function findPet(petId) {
+  return appState.pets.find((pet) => pet.id === petId) || emptyPet;
 }
 
-export function selectHealthPet(name) {
-  if (appState.pets.some((pet) => pet.name === name)) appState.healthPetName = name;
+export function selectProfilePet(petId) {
+  if (appState.pets.some((pet) => pet.id === petId)) appState.profilePetId = petId;
+}
+
+export function selectHealthPet(petId) {
+  if (appState.pets.some((pet) => pet.id === petId)) appState.healthPetId = petId;
 }
 
 export function addPet(pet) {
   const profile = {
     ...pet,
+    id: String(pet.id || createId("pet")),
     avatar: pet.avatar || "https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=640&q=82",
-    desc: `${pet.breed} · ${pet.age}岁 · ${pet.gender}`,
-    days: 0,
+    desc: pet.breed + " · " + pet.age + "岁 · " + pet.gender,
+    days: Number(pet.days || 0),
     healthScore: 100,
     taskProgress: "0/0",
-    healthRecord: { feeding: 0, water: "正常", walk: 0, weight: 0, stool: "正常", mood: "正常" },
+    healthRecord: blankRecord(),
   };
   appState.pets.push(profile);
-  appState.profilePetName = profile.name;
-  try { uni.setStorageSync("pet-health-assistant.pets.v1", clone(appState.pets)); } catch (error) { console.warn(error); }
+  appState.profilePetId = profile.id;
+  appState.healthPetId ||= profile.id;
+  persistAll();
   return profile;
 }
 
-export function saveHealthRecord(petName, record) {
-  const pet = findPet(petName);
-  if (!pet) return { nextPetName: null, allCompleted: false };
-  pet.healthRecord = { ...record };
-  if (!appState.submittedHealthPets.includes(petName)) appState.submittedHealthPets.push(petName);
+export function deletePet(petId) {
+  const index = appState.pets.findIndex((pet) => pet.id === petId);
+  if (index < 0) return false;
+  appState.pets.splice(index, 1);
+  appState.tasks = appState.tasks.filter((task) => !(task.petIds || []).includes(petId));
+  delete appState.healthRecords[petId];
+  appState.submittedHealthPetIds = appState.submittedHealthPetIds.filter((id) => id !== petId);
+  const nextPetId = appState.pets[0]?.id || "";
+  if (appState.profilePetId === petId) appState.profilePetId = nextPetId;
+  if (appState.healthPetId === petId) appState.healthPetId = nextPetId;
+  persistAll();
+  return true;
+}
 
-  const startIndex = appState.pets.findIndex((item) => item.name === petName);
-  let nextPetName = null;
+export function saveHealthRecord(petId, record) {
+  const pet = findPet(petId);
+  if (!pet.id) return { nextPetId: null, nextPetName: null, allCompleted: false };
+  pet.healthRecord = { ...record };
+  const today = new Date().toISOString().slice(0, 10);
+  appState.healthRecords[petId] ||= {};
+  appState.healthRecords[petId][today] = { ...record };
+  if (!appState.submittedHealthPetIds.includes(petId)) appState.submittedHealthPetIds.push(petId);
+
+  const startIndex = appState.pets.findIndex((item) => item.id === petId);
+  let nextPet = null;
   for (let offset = 1; offset < appState.pets.length; offset += 1) {
     const candidate = appState.pets[(startIndex + offset) % appState.pets.length];
-    if (!appState.submittedHealthPets.includes(candidate.name)) {
-      nextPetName = candidate.name;
+    if (!appState.submittedHealthPetIds.includes(candidate.id)) {
+      nextPet = candidate;
       break;
     }
   }
-  if (nextPetName) appState.healthPetName = nextPetName;
+  if (nextPet) appState.healthPetId = nextPet.id;
+  persistAll();
   return {
-    nextPetName,
-    allCompleted: appState.submittedHealthPets.length === appState.pets.length,
+    nextPetId: nextPet?.id || null,
+    nextPetName: nextPet?.name || null,
+    allCompleted: appState.submittedHealthPetIds.length === appState.pets.length,
   };
 }
 
 export function completeTask(taskId) {
   const task = appState.tasks.find((item) => item.id === taskId);
-  if (!task || task.done) return;
-  task.done = true;
-  task.note = task.note.includes("待完成") ? task.note.replace("待完成", "已完成") : `${task.note}，已完成`;
+  if (!task) return;
+  task.done = !task.done;
+  persistAll();
 }

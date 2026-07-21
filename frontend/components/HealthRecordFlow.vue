@@ -8,8 +8,8 @@
       <view class="flow-heading"><text>今日记录 {{ completedCount }}/{{ pets.length }}</text><text>{{ flowHint }}</text></view>
       <view v-if="isSinglePet" class="single-pet-state"><text>●</text><text>当前宠物：{{ activePetName }} · 今天尚未提交健康记录</text></view>
       <scroll-view v-else class="pet-tabs" :class="petTabLayout" scroll-x enable-flex>
-        <button v-for="pet in pets" :key="pet.name" type="button" :class="{ current: pet.name === activePetName && !allCompleted, completed: isCompleted(pet.name) }" @click="$emit('select-pet', pet.name)">
-          <text class="tab-marker">{{ markerFor(pet.name) }}</text><text>{{ pet.name }}</text>
+        <button v-for="pet in pets" :key="pet.id" type="button" :class="{ current: pet.id === activePetId && !allCompleted, completed: isCompleted(pet.id) }" @click="$emit('select-pet', pet.id)">
+          <text class="tab-marker">{{ markerFor(pet.id) }}</text><text>{{ pet.name }}</text>
         </button>
       </scroll-view>
       <view class="flow-route"><text>{{ routeCurrent }}</text><text>{{ routeHint }}</text></view>
@@ -24,7 +24,7 @@
     </view>
     <view v-else class="complete-card">
       <text class="complete-mark">✓</text><text class="complete-title">今日健康记录已全部完成</text><text class="complete-desc">所有宠物的身体状态均已保存。</text>
-      <view class="complete-pets"><text v-for="pet in pets" :key="pet.name">✓ {{ pet.name }} · 已记录</text></view>
+      <view class="complete-pets"><text v-for="pet in pets" :key="pet.id">✓ {{ pet.name }} · 已记录</text></view>
       <button class="small-button" type="button" @click="openManage">查看或修改今日记录</button>
     </view>
     <button v-if="!allCompleted" class="primary-button submit-button" type="button" @click="submitRecord">{{ submitLabel }}</button>
@@ -36,26 +36,44 @@ export default {
   name: "HealthRecordFlow",
   emits: ["select-pet", "submit"],
   props: {
-    pets: { type: Array, default: () => [] }, activePetName: { type: String, default: "" },
-    record: { type: Object, required: true }, submittedPetNames: { type: Array, default: () => [] },
+    pets: { type: Array, default: () => [] },
+    activePetId: { type: String, default: "" },
+    record: { type: Object, required: true },
+    submittedPetIds: { type: Array, default: () => [] },
   },
-  data() { return { localRecord: { ...this.record }, waterOptions: ["少", "正常", "多"], stoolOptions: ["正常", "偏软", "腹泻", "便秘"], moodOptions: ["正常", "活跃", "低迷"] }; },
+  data() {
+    return {
+      localRecord: { ...this.record },
+      waterOptions: ["少", "正常", "多"],
+      stoolOptions: ["正常", "偏软", "腹泻", "便秘"],
+      moodOptions: ["正常", "活跃", "低迷"],
+    };
+  },
   computed: {
-    completedCount() { return this.submittedPetNames.length; },
+    activePet() { return this.pets.find((pet) => pet.id === this.activePetId) || { id: "", name: "" }; },
+    activePetName() { return this.activePet.name; },
+    completedCount() { return this.submittedPetIds.length; },
     allCompleted() { return this.pets.length > 0 && this.completedCount === this.pets.length; },
     isSinglePet() { return this.pets.length === 1; },
-    petTabLayout() { return this.pets.length > 4 ? "tabs-overflow" : `tabs-count-${Math.max(1, this.pets.length)}`; },
-    routeCurrent() { return this.allCompleted ? "今日记录已全部完成" : this.isSinglePet ? "唯一宠物，无需切换" : `当前：${this.activePetName}`; },
-    flowHint() { return this.isSinglePet ? `记录${this.activePetName}今天的身体状态` : "提交后自动进入下一只宠物"; },
-    nextPetName() { const index = this.pets.findIndex((pet) => pet.name === this.activePetName); for (let offset = 1; offset < this.pets.length; offset += 1) { const pet = this.pets[(index + offset) % this.pets.length]; if (!this.isCompleted(pet.name)) return pet.name; } return null; },
-    routeHint() { return this.allCompleted ? `${this.completedCount}/${this.pets.length} 已记录` : this.isSinglePet ? "完成后结束今日记录" : this.nextPetName ? `下一只：${this.nextPetName}` : "最后一只记录"; },
-    submitLabel() { if (!this.nextPetName) return "保存并完成今日记录"; return `${this.isCompleted(this.activePetName) ? "更新并记录下一只" : "保存并记录下一只"}：${this.nextPetName}`; },
+    petTabLayout() { return this.pets.length > 4 ? "tabs-overflow" : "tabs-count-" + Math.max(1, this.pets.length); },
+    routeCurrent() { return this.allCompleted ? "今日记录已全部完成" : this.isSinglePet ? "唯一宠物，无需切换" : "当前：" + this.activePetName; },
+    flowHint() { return this.isSinglePet ? "记录" + this.activePetName + "今天的身体状态" : "提交后自动进入下一只宠物"; },
+    nextPet() {
+      const index = this.pets.findIndex((pet) => pet.id === this.activePetId);
+      for (let offset = 1; offset < this.pets.length; offset += 1) {
+        const pet = this.pets[(index + offset) % this.pets.length];
+        if (!this.isCompleted(pet.id)) return pet;
+      }
+      return null;
+    },
+    routeHint() { return this.allCompleted ? this.completedCount + "/" + this.pets.length + " 已记录" : this.isSinglePet ? "完成后结束今日记录" : this.nextPet ? "下一只：" + this.nextPet.name : "最后一只记录"; },
+    submitLabel() { if (!this.nextPet) return "保存并完成今日记录"; return (this.isCompleted(this.activePetId) ? "更新并记录下一只" : "保存并记录下一只") + "：" + this.nextPet.name; },
   },
   watch: { record: { deep: true, immediate: true, handler(value) { this.localRecord = { ...value }; } } },
   methods: {
-    isCompleted(name) { return this.submittedPetNames.includes(name); },
-    markerFor(name) { if (this.isCompleted(name)) return "✓"; return name === this.activePetName ? "●" : "○"; },
-    submitRecord() { this.$emit("submit", { petName: this.activePetName, record: { ...this.localRecord } }); },
+    isCompleted(petId) { return this.submittedPetIds.includes(petId); },
+    markerFor(petId) { if (this.isCompleted(petId)) return "✓"; return petId === this.activePetId ? "●" : "○"; },
+    submitRecord() { this.$emit("submit", { petId: this.activePetId, petName: this.activePetName, record: { ...this.localRecord } }); },
     openManage() { uni.navigateTo({ url: "/pages/records/manage" }); },
   },
 };

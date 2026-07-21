@@ -10,7 +10,7 @@
 
     <view class="card task-form-card">
       <label><text>任务名称</text><input value="傍晚遛弯" /></label>
-      <label><text>选择宠物</text><input value="豆包、奶糖" /></label>
+      <label><text>选择宠物</text><input value="" placeholder="请选择宠物" /></label>
       <label><text>提醒时间</text><input value="18:30" /></label>
       <label><text>重复规则</text><input value="每日重复" /></label>
       <label><text>投送成员</text><input value="小鱼、阿辰" /></label>

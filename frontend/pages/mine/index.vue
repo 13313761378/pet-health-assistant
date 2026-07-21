@@ -5,7 +5,7 @@
       <view>
         <text class="eyebrow">账号信息</text>
         <text class="name">小鱼</text>
-        <text class="desc">已陪伴豆包 <text>286天</text></text>
+        <text class="desc">与宠物相伴 <text>从今天开始</text></text>
       </view>
       <button class="notify" type="button" @click.stop="openMessages">
         <text>铃</text>
@@ -39,9 +39,9 @@
       </view>
       <view class="family-activity">
         <text class="activity-title">家庭动态</text>
-        <view><text>✓</text><text>小鱼完成了豆包的早餐护理</text><text>08:42</text></view>
+        <view><text>✓</text><text>小鱼完成了宠物早餐护理</text><text>08:42</text></view>
         <view><text>＋</text><text>阿辰添加了共同任务</text><text>昨天</text></view>
-        <view><text>♥</text><text>妈妈更新了团子的健康记录</text><text>昨天</text></view>
+        <view><text>♥</text><text>妈妈更新了宠物健康记录</text><text>昨天</text></view>
       </view>
     </view>
 

@@ -1,15 +1,16 @@
 <template>
   <view class="page-shell">
-    <PetSummaryCard :pet="profilePet" :pets="state.pets" :active-pet="state.profilePetName" @select="selectProfile" @add="createPet" />
+    <PetSummaryCard :pet="profilePet" :pets="state.pets" :active-pet-id="state.profilePetId" @select="selectProfile" @add="createPet" />
     <HealthRecordFlow
+      v-if="state.pets.length"
       :pets="state.pets"
-      :active-pet-name="state.healthPetName"
+      :active-pet-id="state.healthPetId"
       :record="healthPet.healthRecord"
-      :submitted-pet-names="state.submittedHealthPets"
+      :submitted-pet-ids="state.submittedHealthPetIds"
       @select-pet="selectHealth"
       @submit="submitHealth"
     />
-    <TaskTimeline title="今日任务列表" :tasks="state.tasks" @complete="finishTask" />
+    <TaskTimeline title="今日任务列表" :tasks="state.tasks" :pets="state.pets" @complete="finishTask" />
   </view>
 </template>
 
@@ -32,29 +33,30 @@ export default {
   },
   computed: {
     profilePet() {
-      return findPet(this.state.profilePetName);
+      return findPet(this.state.profilePetId);
     },
     healthPet() {
-      return findPet(this.state.healthPetName);
+      return findPet(this.state.healthPetId);
     },
   },
   methods: {
-    selectProfile(name) {
-      selectProfilePet(name);
+    selectProfile(petId) {
+      selectProfilePet(petId);
     },
-    selectHealth(name) {
-      selectHealthPet(name);
+    selectHealth(petId) {
+      selectHealthPet(petId);
     },
     createPet(pet) {
       addPet(pet);
     },
     submitHealth(payload) {
-      const result = saveHealthRecord(payload.petName, payload.record);
-      uni.showToast({ title: result.allCompleted ? "所有宠物今日记录已完成" : `${payload.petName}已保存，正在记录${result.nextPetName}`, icon: "none" });
+      const result = saveHealthRecord(payload.petId, payload.record);
+      const title = result.allCompleted ? "所有宠物今日记录已完成" : payload.petName + "已保存，正在记录" + (result.nextPetName || "");
+      uni.showToast({ title, icon: "none" });
     },
     finishTask(taskId) {
       completeTask(taskId);
-      uni.showToast({ title: "任务已完成", icon: "none" });
+      uni.showToast({ title: "任务状态已更新", icon: "none" });
     },
   },
 };

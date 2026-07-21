@@ -50,63 +50,28 @@
     <main class="phone-shell">
       <section class="page active" id="home-page" aria-label="首页">
         <header class="pet-strip">
-          <div class="pet-card-main">
-            <div class="pet-profile">
-              <img id="current-pet-avatar" class="open-pet-detail" src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包照片" role="button" tabindex="0" aria-label="查看豆包的宠物信息" />
-              <div>
-                <h1 id="current-pet-name">豆包</h1>
-                <span id="current-pet-desc">柯基 · 2岁 · 公</span>
-              </div>
-            </div>
-          </div>
-          <div class="pet-growth-row">
-            <div><span>已陪伴</span><strong id="current-pet-days">286天</strong></div>
-            <div><span>健康值</span><strong id="current-pet-score">92%</strong></div>
-            <div><span>今日任务</span><strong id="current-pet-health-label">3/4</strong></div>
-          </div>
-          <div class="pet-switcher" aria-label="宠物列表">
-            <button class="active" type="button" data-pet="豆包">
-              <img src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包" />
-              <span>豆包</span>
-            </button>
-            <button type="button" data-pet="奶糖">
-              <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=120&q=80" alt="奶糖" />
-              <span>奶糖</span>
-            </button>
-            <button type="button" data-pet="团子">
-              <img src="https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=120&q=80" alt="团子" />
-              <span>团子</span>
-            </button>
-            <button class="add-pet-button" type="button">
-              <span class="plus-mark">+</span>
-              <span>新增</span>
-            </button>
-          </div>
+          <div class="pet-switcher" aria-label="宠物列表"></div>
           <button class="icon-button notification-button" type="button" aria-label="消息"><svg><use href="#i-bell"></use></svg></button>
         </header>
 
         <section class="health-panel">
           <div class="section-title">
-            <div>
-              <p class="eyebrow">今日健康记录</p>
-              <h2 id="health-record-title">记录豆包今天的身体状态</h2>
+            <h2 id="health-record-title">今日健康记录</h2>
+            <div class="health-panel-actions">
+              <span class="health-record-status" id="health-record-status" role="status">未填写</span>
+              <button class="health-panel-toggle" id="health-panel-toggle" type="button" aria-expanded="true" aria-controls="home-health-record-content"><span>收起</span><i aria-hidden="true">⌃</i></button>
             </div>
-            <button class="text-button page-link" type="button" data-page="record-manage-page">记录管理</button>
           </div>
+          <p class="health-panel-slogan">用心记录每一天，守护它健康成长的每一步。</p>
+          <div class="health-panel-content" id="home-health-record-content">
           <div class="health-record-flow" aria-label="今日健康记录进度">
             <div class="health-flow-copy">
               <strong id="health-flow-progress">今日记录 0/3</strong>
               <span id="health-flow-hint">提交后将自动进入下一只宠物</span>
             </div>
-            <div class="health-flow-pets" id="health-flow-pets">
-              <button class="health-flow-pet current" type="button" data-health-pet="豆包" aria-label="切换为豆包的健康记录"><i>○</i><b>豆包</b></button>
-              <span class="health-flow-line"></span>
-              <button class="health-flow-pet" type="button" data-health-pet="奶糖" aria-label="切换为奶糖的健康记录"><i>○</i><b>奶糖</b></button>
-              <span class="health-flow-line"></span>
-              <button class="health-flow-pet" type="button" data-health-pet="团子" aria-label="切换为团子的健康记录"><i>○</i><b>团子</b></button>
-            </div>
-            <div class="single-pet-flow-state" id="single-pet-flow-state" aria-live="polite"><i>●</i><span>当前宠物：豆包 · 今天尚未提交健康记录</span></div>
-            <div class="health-flow-route"><span id="health-flow-current">当前：豆包</span><span id="health-flow-next">下一只：奶糖</span></div>
+            <div class="health-flow-pets" id="health-flow-pets"></div>
+            <div class="single-pet-flow-state" id="single-pet-flow-state" aria-live="polite"><i>●</i><span>今天尚未提交健康记录</span></div>
+            <div class="health-flow-route"><span id="health-flow-current"></span><span id="health-flow-next"></span></div>
           </div>
           <div class="health-grid">
             <article class="health-edit-card">
@@ -114,7 +79,7 @@
                 <svg><use href="#i-bowl"></use></svg>
                 <span>喂食</span>
               </div>
-              <label class="soft-input"><input id="home-feeding" type="number" value="2" /><em>勺</em></label>
+              <label class="soft-input"><input id="home-feeding" type="number" value="0" /><em>勺</em></label>
             </article>
             <article class="health-edit-card">
               <div class="health-card-title">
@@ -132,14 +97,14 @@
                 <svg><use href="#i-walk"></use></svg>
                 <span>遛弯</span>
               </div>
-              <label class="soft-input"><input id="home-walk" type="number" value="3.2" /><em>公里</em></label>
+              <label class="soft-input"><input id="home-walk" type="number" value="0" /><em>公里</em></label>
             </article>
             <article class="health-edit-card">
               <div class="health-card-title">
                 <svg><use href="#i-scale"></use></svg>
                 <span>体重</span>
               </div>
-              <label class="soft-input"><input id="home-weight" type="number" value="10.8" /><em>kg</em></label>
+              <label class="soft-input"><input id="home-weight" type="number" value="0" /><em>kg</em></label>
             </article>
             <article class="health-edit-card">
               <div class="health-card-title">
@@ -165,67 +130,19 @@
               </div>
             </article>
           </div>
-          <div class="record-submitted-card">
-            <div class="health-complete-mark">✓</div>
-            <strong class="health-complete-title">今日健康记录已全部完成</strong>
-            <span class="health-complete-desc">豆包、奶糖和团子的身体状态均已保存。</span>
-            <div class="health-complete-list" id="health-complete-list"></div>
-            <button class="small-button page-link" type="button" data-page="record-manage-page">查看或修改今日记录</button>
+          <button class="primary-button" id="health-submit-button" type="button">保存今日健康记录</button>
           </div>
-          <button class="primary-button" id="health-submit-button" type="button">保存并记录下一只：奶糖</button>
         </section>
 
         <section class="content-card">
           <div class="section-title">
-            <div>
-              <p class="eyebrow">全部宠物任务</p>
-              <h2>今日任务列表</h2>
-            </div>
-            <div class="home-task-heading-actions"><span>6 项</span><button class="small-button open-task-modal" type="button">新增任务</button></div>
+            <h2>任务列表</h2>
           </div>
           <div class="timeline-list home-task-list">
-            <article class="timeline-item done" data-task-pet="豆包">
-              <button class="task-open open-task-modal" type="button">
-                <time>08:30</time>
-                <div class="home-task-copy"><span class="home-task-pet-badge doubao">豆包</span><strong>早餐后补充益生菌</strong><small>拌入半包，已完成</small></div>
-              </button>
-              <button class="task-complete" type="button" aria-label="早餐后补充益生菌已完成">✓</button>
-            </article>
-            <article class="timeline-item" data-task-pet="奶糖">
-              <button class="task-open open-task-modal" type="button">
-                <time>10:00</time>
-                <div class="home-task-copy"><span class="home-task-pet-badge naitang">奶糖</span><strong>日常梳毛</strong><small>换毛期增加梳理频率，待完成</small></div>
-              </button>
-              <button class="task-complete" type="button" aria-label="完成奶糖日常梳毛"></button>
-            </article>
-            <article class="timeline-item" data-task-pet="豆包">
-              <button class="task-open open-task-modal" type="button">
-                <time>18:30</time>
-                <div class="home-task-copy"><span class="home-task-pet-badge doubao">豆包</span><strong>傍晚遛弯</strong><small>避开高温路面，待完成</small></div>
-              </button>
-              <button class="task-complete" type="button" aria-label="完成豆包傍晚遛弯"></button>
-            </article>
-            <article class="timeline-item" data-task-pet="团子">
-              <button class="task-open open-task-modal" type="button">
-                <time>19:00</time>
-                <div class="home-task-copy"><span class="home-task-pet-badge tuanzi">团子</span><strong>晚间喂食</strong><small>湿粮 1 份，少量补充饮水，待完成</small></div>
-              </button>
-              <button class="task-complete" type="button" aria-label="完成团子晚间喂食"></button>
-            </article>
-            <article class="timeline-item" data-task-pet="共同任务">
-              <button class="task-open open-task-modal" type="button">
-                <time>20:00</time>
-                <div class="home-task-copy"><span class="home-task-pet-badge shared">共同任务</span><strong>清洗食盆与水碗</strong><small>全部宠物共用区域，待完成</small></div>
-              </button>
-              <button class="task-complete" type="button" aria-label="完成共同任务清洗食盆与水碗"></button>
-            </article>
-            <article class="timeline-item" data-task-pet="奶糖">
-              <button class="task-open open-task-modal" type="button">
-                <time>21:00</time>
-                <div class="home-task-copy"><span class="home-task-pet-badge naitang">奶糖</span><strong>清洁耳朵</strong><small>使用温和护理液，待完成</small></div>
-              </button>
-              <button class="task-complete" type="button" aria-label="完成奶糖清洁耳朵"></button>
-            </article>
+            <button class="timeline-item home-task-add open-task-modal" type="button">
+              <span class="task-add-icon">＋</span>
+              <strong class="task-add-label">新增任务</strong>
+            </button>
           </div>
         </section>
       </section>
@@ -237,22 +154,18 @@
         </header>
         <section class="records-pet-overview content-card" aria-label="切换宠物健康档案">
           <div class="records-pet-current">
-            <img id="records-pet-avatar" src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包照片" />
+            <img id="records-pet-avatar" hidden alt="" />
             <div>
               <p class="eyebrow">当前宠物</p>
-              <h2 id="records-pet-name">豆包</h2>
-              <span id="records-pet-desc">柯基 · 2岁 · 公</span>
+              <h2 id="records-pet-name">暂无宠物</h2>
+              <span id="records-pet-desc">请先在首页新增宠物</span>
             </div>
             <div class="records-health-badge">
               <span>健康值</span>
-              <strong id="records-pet-score">92%</strong>
+              <strong id="records-pet-score">--</strong>
             </div>
           </div>
-          <div class="records-pet-switcher" aria-label="选择要查看的宠物">
-            <button class="active" type="button" data-record-pet="豆包"><img src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="" /><span>豆包</span><small>92%</small></button>
-            <button type="button" data-record-pet="奶糖"><img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=120&q=80" alt="" /><span>奶糖</span><small>88%</small></button>
-            <button type="button" data-record-pet="团子"><img src="https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=120&q=80" alt="" /><span>团子</span><small>95%</small></button>
-          </div>
+          <div class="records-pet-switcher" aria-label="选择要查看的宠物"></div>
         </section>
 
         <section class="content-card calendar-card">
@@ -279,16 +192,9 @@
                 <p class="eyebrow" id="record-date-label">6 月 4 日</p>
                 <h2>健康记录</h2>
               </div>
-              <span class="status-pill" id="record-status">已填写</span>
+              <span class="status-pill" id="record-status">无记录</span>
             </div>
-            <div class="metric-list" id="record-metric-list">
-              <div><span>体重</span><strong>10.8 kg</strong></div>
-              <div><span>喂食</span><strong>2 勺</strong></div>
-              <div><span>饮水</span><strong>正常</strong></div>
-              <div><span>遛弯</span><strong>3.2 公里</strong></div>
-              <div><span>排便</span><strong>正常</strong></div>
-              <div><span>精神状态</span><strong>活跃</strong></div>
-            </div>
+            <div class="metric-list" id="record-metric-list"></div>
             <div class="empty-record" id="empty-record">当日无记录</div>
           </article>
 
@@ -296,10 +202,10 @@
             <div class="score-main">
               <div>
                 <p class="eyebrow">健康值</p>
-                <h2 id="record-score-value">92%</h2>
-                <p id="record-score-copy">趋势稳定，运动和饮食节奏较好。</p>
+                <h2 id="record-score-value">--</h2>
+                <p id="record-score-copy">新增宠物并填写记录后即可查看。</p>
               </div>
-              <div class="score-circle" id="record-score-circle">92</div>
+              <div class="score-circle" id="record-score-circle">0</div>
             </div>
             <div class="line-chart" aria-label="健康趋势图">
               <span style="height: 42%"></span>
@@ -321,10 +227,7 @@
               <h2>当天任务列表</h2>
             </div>
           </div>
-          <div class="timeline-list compact">
-            <button class="timeline-item done open-task-modal" type="button"><time>10:00</time><span><strong>梳毛</strong><small>换毛期增加频率</small></span></button>
-            <button class="timeline-item open-task-modal" type="button"><time>19:30</time><span><strong>晚间喂食</strong><small>少量多餐</small></span></button>
-          </div>
+          <div class="timeline-list compact records-task-list"></div>
         </section>
       </section>
 
@@ -501,7 +404,7 @@
           <div>
             <p class="eyebrow">账号信息</p>
             <h1>小鱼</h1>
-            <p>已陪伴豆包 <strong>286天</strong></p>
+            <p>与宠物相伴 <strong id="mine-pet-days">0天</strong></p>
           </div>
           <button class="notification-button" type="button" aria-label="消息中心">
             <svg><use href="#i-bell"></use></svg>
@@ -515,6 +418,21 @@
           <div><span>健康均分</span><strong>91</strong></div>
         </section>
 
+        <section class="content-card mine-pet-management" aria-labelledby="mine-pet-management-title">
+          <div class="section-title mine-pet-management-heading">
+            <div>
+              <p class="eyebrow">宠物档案</p>
+              <h2 id="mine-pet-management-title">宠物管理</h2>
+            </div>
+            <span class="mine-pet-count" id="mine-pet-count">0 只</span>
+          </div>
+          <div class="mine-pet-list" id="mine-pet-list"></div>
+          <button class="mine-pet-add" id="mine-pet-add" type="button">
+            <span>＋</span>
+            <strong>新增宠物</strong>
+            <small>创建新的宠物档案</small>
+          </button>
+        </section>
         <section class="content-card family-card page-link" data-page="family-page" role="button" tabindex="0">
           <div class="section-title">
             <div>
@@ -536,8 +454,8 @@
           <div class="mine-family-activity">
             <div class="mine-family-activity-heading"><span>家庭动态</span><em>最近更新</em></div>
             <div class="mine-family-activity-list">
-              <div><i>✓</i><p><strong>妈妈完成了更换饮水</strong><span>今天 11:20 · 豆包</span></p></div>
-              <div><i>↗</i><p><strong>小鱼更新了豆包的体重</strong><span>昨天 08:10 · 12.8 kg</span></p></div>
+              <div><i>✓</i><p><strong>妈妈完成了更换饮水</strong><span>今天 11:20 · 宠物照护</span></p></div>
+              <div><i>↗</i><p><strong>小鱼更新了宠物体重</strong><span>昨天 08:10 · 12.8 kg</span></p></div>
               <div><i>＋</i><p><strong>阿辰更新了家庭共享记录</strong><span>昨天 20:36 · 全体可见</span></p></div>
             </div>
           </div>
@@ -601,10 +519,10 @@
           <img id="pet-detail-avatar" src="" alt="宠物照片" />
           <div>
             <p class="eyebrow">当前宠物</p>
-            <h2 id="pet-detail-name-title">豆包</h2>
-            <span id="pet-detail-desc">柯基 · 2岁 · 公</span>
+            <h2 id="pet-detail-name-title">宠物</h2>
+            <span id="pet-detail-desc">资料未填写</span>
           </div>
-          <div class="pet-detail-score"><span>健康值</span><strong id="pet-detail-score">92%</strong></div>
+          <div class="pet-detail-score"><span>健康值</span><strong id="pet-detail-score">--</strong></div>
         </section>
 
         <section class="pet-detail-stats">
@@ -685,7 +603,7 @@
         <section class="content-card record-manage-card">
           <div class="section-title">
             <div>
-              <p class="eyebrow" id="manage-date-label">今日数据</p>
+              <p class="eyebrow" id="manage-date-label">暂无记录</p>
               <h2>可修改已提交记录</h2>
             </div>
             <span class="status-pill">已提交</span>
@@ -693,7 +611,7 @@
           <div class="manage-edit-grid">
             <label class="manage-field">
               <span>喂食</span>
-              <div class="soft-input"><input id="manage-feeding" type="number" value="2" /><em>勺</em></div>
+              <div class="soft-input"><input id="manage-feeding" type="number" value="0" /><em>勺</em></div>
             </label>
             <div class="manage-field">
               <span>饮水</span>
@@ -705,11 +623,11 @@
             </div>
             <label class="manage-field">
               <span>遛弯</span>
-              <div class="soft-input"><input id="manage-walk" type="number" value="3.2" /><em>公里</em></div>
+              <div class="soft-input"><input id="manage-walk" type="number" value="0" /><em>公里</em></div>
             </label>
             <label class="manage-field">
               <span>体重</span>
-              <div class="soft-input"><input id="manage-weight" type="number" value="10.8" /><em>kg</em></div>
+              <div class="soft-input"><input id="manage-weight" type="number" value="0" /><em>kg</em></div>
             </label>
             <div class="manage-field full">
               <span>排便</span>
@@ -729,7 +647,7 @@
               </div>
             </div>
           </div>
-          <button class="primary-button toast-button" type="button" data-toast="当天记录修改已保存">保存修改</button>
+          <button class="primary-button" id="record-manage-save" type="button">保存修改</button>
         </section>
         <section class="content-card record-history-card">
           <div class="section-title">
@@ -738,20 +656,7 @@
               <h2>查看已提交记录</h2>
             </div>
           </div>
-          <div class="history-list">
-            <button class="history-item active" type="button" data-history="today">
-              <time>今天</time>
-              <span>喂食 2 勺 · 遛弯 3.2km · 健康值 92%</span>
-            </button>
-            <button class="history-item" type="button" data-history="yesterday">
-              <time>昨天</time>
-              <span>喂食 2 勺 · 遛弯 2.4km · 健康值 89%</span>
-            </button>
-            <button class="history-item" type="button" data-history="0605">
-              <time>06-05</time>
-              <span>喂食 3 勺 · 遛弯 2.8km · 健康值 90%</span>
-            </button>
-          </div>
+          <div class="history-list"></div>
         </section>
       </section>
 
@@ -766,7 +671,7 @@
         <section class="family-collab-hero">
           <div>
             <p class="eyebrow">FAMILY CARE</p>
-            <h2>一家人一起照顾豆包</h2>
+            <h2>一家人一起照顾宠物</h2>
             <span>4 位成员共享宠物档案、健康记录和重要变化。</span>
           </div>
           <div class="family-collab-progress" aria-label="家庭成员数量">
@@ -925,34 +830,14 @@
           <button class="icon-button close-modal" type="button" aria-label="关闭">×</button>
         </div>
         <form class="task-form">
-          <label><span>任务名称</span><input value="傍晚遛弯" /></label>
+          <label><span>任务名称</span><input id="task-name-input" value="" /></label>
           <fieldset class="pet-picker">
             <legend>选择宠物，可多选</legend>
-            <label class="pet-option selected">
-              <input type="checkbox" checked />
-              <img src="https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg" alt="豆包" />
-              <span>豆包</span>
-            </label>
-            <label class="pet-option">
-              <input type="checkbox" />
-              <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=120&q=80" alt="奶糖" />
-              <span>奶糖</span>
-            </label>
-            <label class="pet-option">
-              <input type="checkbox" />
-              <img src="assets/breeds/british-shorthair.jpg" alt="团子" />
-              <span>团子</span>
-            </label>
-            <label class="pet-option shared-task-option">
-              <input type="checkbox" />
-              <i class="task-scope-icon">⌂</i>
-              <span>共同任务</span>
-            </label>
           </fieldset>
-          <label><span>提醒时间</span><input type="time" value="18:30" /></label>
+          <label><span>提醒时间</span><input id="task-time-input" type="time" value="18:30" /></label>
           <label>
             <span>重复规则</span>
-            <select>
+            <select id="task-repeat-select">
               <option>仅一次</option>
               <option selected>每日重复</option>
               <option>每周重复</option>
@@ -960,10 +845,30 @@
               <option>每几日重复</option>
             </select>
           </label>
-          <label><span>投送成员，家庭组成员可多选</span><select multiple><option selected>小鱼</option><option selected>阿辰</option><option>妈妈</option></select></label>
-          <label class="full"><span>备注</span><textarea>注意避开高温路面，回家后补水。</textarea></label>
+          <fieldset class="member-picker">
+            <legend>投送成员，可多选</legend>
+            <label class="member-option selected">
+              <input type="checkbox" value="小鱼" checked />
+              <i>鱼</i>
+              <span>小鱼</span>
+            </label>
+            <label class="member-option selected">
+              <input type="checkbox" value="阿辰" checked />
+              <i>辰</i>
+              <span>阿辰</span>
+            </label>
+            <label class="member-option">
+              <input type="checkbox" value="妈妈" />
+              <i>妈</i>
+              <span>妈妈</span>
+            </label>
+          </fieldset>
+          <label class="full"><span>备注</span><textarea id="task-note-input"></textarea></label>
         </form>
-        <button class="primary-button close-modal toast-button" type="button" data-toast="任务已保存">保存展示</button>
+        <div class="task-modal-actions">
+          <button class="task-delete-button" id="task-delete-button" type="button" hidden>删除任务</button>
+          <button class="primary-button toast-button" id="task-save-button" type="button" data-toast="任务已保存">保存任务</button>
+        </div>
       </section>
     </div>
 
@@ -998,6 +903,9 @@
               <option value="UNKNOWN">未知</option>
             </select>
           </label>
+          <label><span>已陪伴天数</span><input id="pet-create-days" type="number" min="0" max="36500" step="1" value="0" required /></label>
+          <label><span>出生日期</span><input id="pet-create-birth" type="date" /></label>
+          <label class="full"><span>爱好</span><input id="pet-create-hobbies" maxlength="200" placeholder="例如：散步、玩球" /></label>
         </form>
         <button class="primary-button" id="pet-create-submit" type="submit" form="pet-create-form">保存宠物</button>
       </section>

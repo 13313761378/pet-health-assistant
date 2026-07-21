@@ -11,108 +11,93 @@ const petModal = document.querySelector("#pet-modal");
 const toast = document.querySelector("#app-toast");
 let previousPageId = "mine-page";
 let activeBreedCategory = "dog";
-let activeRecordPetName = "豆包";
-let activePetName = "豆包";
-let activeHealthPetName = "豆包";
+let activeRecordPetId = "";
+let activePetId = "";
+let activeHealthPetId = "";
+let activeEditingTaskId = "";
 let toastTimer;
-const submittedHealthPets = new Set();
-let draggedPetName = "";
+const submittedHealthPetIds = new Set();
+let draggedPetId = "";
 let pointerPetSort = null;
 let suppressPetSelection = false;
+let homeCarouselKey = "__add__";
 let petProfileOrder = [];
 
-const petProfiles = {
-  豆包: {
-    name: "豆包",
-    desc: "柯基 · 2岁 · 公",
-    avatar: "https://cdn.pixabay.com/photo/2020/03/31/19/20/dog-4988986_1280.jpg",
-    days: 286,
-    score: 92,
-    healthLabel: "优秀",
-    taskProgress: "3/4",
-    record: {
-      feeding: 2,
-      water: "正常",
-      walk: 3.2,
-      weight: 10.8,
-      stool: "正常",
-      mood: "活跃",
-    },
-  },
-  奶糖: {
-    name: "奶糖",
-    desc: "比熊 · 1岁 · 母",
-    avatar: "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=320&q=80",
-    days: 124,
-    score: 88,
-    healthLabel: "良好",
-    taskProgress: "2/4",
-    record: {
-      feeding: 1.5,
-      water: "少",
-      walk: 2.1,
-      weight: 5.6,
-      stool: "正常",
-      mood: "正常",
-    },
-  },
-  团子: {
-    name: "团子",
-    desc: "英短 · 3岁 · 公",
-    avatar: "https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=320&q=80",
-    days: 318,
-    score: 95,
-    healthLabel: "优秀",
-    taskProgress: "4/4",
-    record: {
-      feeding: 2,
-      water: "正常",
-      walk: 0.6,
-      weight: 4.9,
-      stool: "偏软",
-      mood: "低迷",
-    },
-  },
-};
+const petProfiles = Object.create(null);
 
-const PET_STORAGE_KEY = "pet-health-assistant.pet-profiles.v1";
-const PET_ORDER_STORAGE_KEY = "pet-health-assistant.pet-order.v1";
+const PET_STORAGE_KEY = "pet-health-assistant.pet-profiles.v2";
+const PET_ORDER_STORAGE_KEY = "pet-health-assistant.pet-order.v2";
+const LEGACY_PET_STORAGE_KEY = "pet-health-assistant.pet-profiles.v1";
+const LEGACY_PET_ORDER_STORAGE_KEY = "pet-health-assistant.pet-order.v1";
+const TASK_STORAGE_KEY = "pet-health-assistant.tasks.v2";
+const HEALTH_STORAGE_KEY = "pet-health-assistant.health-records.v2";
 const PET_ACCESS_TOKEN_KEY = "petHealthAccessToken";
 let pendingPetAvatar = "";
 
+function createLocalId(prefix) {
+  const token = globalThis.crypto?.randomUUID?.() || Date.now() + "-" + Math.random().toString(16).slice(2);
+  return prefix + "-" + token;
+}
+
 function syncPetProfileOrder(preferredOrder = petProfileOrder) {
-  const availableNames = Object.keys(petProfiles);
-  const validPreferredNames = Array.isArray(preferredOrder)
-    ? preferredOrder.filter((name, index) => petProfiles[name] && preferredOrder.indexOf(name) === index)
+  const availableIds = Object.keys(petProfiles);
+  const validPreferredIds = Array.isArray(preferredOrder)
+    ? preferredOrder.filter((petId, index) => petProfiles[petId] && preferredOrder.indexOf(petId) === index)
     : [];
   petProfileOrder = [
-    ...validPreferredNames,
-    ...availableNames.filter((name) => !validPreferredNames.includes(name)),
+    ...validPreferredIds,
+    ...availableIds.filter((petId) => !validPreferredIds.includes(petId)),
   ];
 }
 
-function getPetNames() {
+function getPetIds() {
   syncPetProfileOrder();
   return [...petProfileOrder];
 }
 
+function migrateStoredPetEntries(stored) {
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) return new Map();
+  const migrated = new Map();
+  Object.entries(stored).forEach(([legacyKey, rawPet]) => {
+    if (!rawPet || typeof rawPet !== "object" || !rawPet.name) return;
+    const petId = String(rawPet.id || (legacyKey.startsWith("pet-") ? legacyKey : createLocalId("pet")));
+    migrated.set(legacyKey, { ...rawPet, id: petId });
+  });
+  return migrated;
+}
+
 function restorePetProfiles() {
   try {
-    const stored = JSON.parse(localStorage.getItem(PET_STORAGE_KEY) || "null");
-    if (stored && typeof stored === "object" && !Array.isArray(stored) && Object.keys(stored).length > 0) {
-      Object.keys(petProfiles).forEach((name) => delete petProfiles[name]);
-      Object.entries(stored).forEach(([name, pet]) => {
-        if (pet && typeof pet === "object" && pet.name && pet.record) petProfiles[name] = pet;
-      });
+    const currentStored = JSON.parse(localStorage.getItem(PET_STORAGE_KEY) || "null");
+    const legacyStored = currentStored ? null : JSON.parse(localStorage.getItem(LEGACY_PET_STORAGE_KEY) || "null");
+    const migrated = migrateStoredPetEntries(currentStored || legacyStored);
+    migrated.forEach((pet) => {
+      pet.record ||= { feeding: 0, water: "正常", walk: 0, weight: 0, stool: "正常", mood: "正常" };
+      petProfiles[pet.id] = pet;
+    });
+
+    const currentOrder = JSON.parse(localStorage.getItem(PET_ORDER_STORAGE_KEY) || "null");
+    const legacyOrder = currentOrder ? null : JSON.parse(localStorage.getItem(LEGACY_PET_ORDER_STORAGE_KEY) || "null");
+    const migratedOrder = (currentOrder || legacyOrder || []).map((key) => {
+      if (petProfiles[key]) return key;
+      return migrated.get(key)?.id;
+    }).filter(Boolean);
+    syncPetProfileOrder(migratedOrder);
+
+    if (!currentStored && legacyStored) {
+      persistPetProfiles();
+      localStorage.removeItem(LEGACY_PET_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_PET_ORDER_STORAGE_KEY);
     }
-    const storedOrder = JSON.parse(localStorage.getItem(PET_ORDER_STORAGE_KEY) || "null");
-    syncPetProfileOrder(storedOrder);
   } catch (error) {
-    console.warn("无法读取本地宠物资料，将使用默认数据", error);
+    console.warn("无法读取本地宠物资料，将从空列表开始", error);
     syncPetProfileOrder();
   }
 }
 
+function findPetIdByName(name) {
+  return getPetIds().find((petId) => petProfiles[petId]?.name === name) || "";
+}
 function persistPetProfiles() {
   try {
     syncPetProfileOrder();
@@ -143,39 +128,10 @@ async function requestPetApi(path, options = {}) {
 }
 
 restorePetProfiles();
-if (!petProfiles[activePetName]) activePetName = getPetNames()[0];
-if (!petProfiles[activeRecordPetName]) activeRecordPetName = activePetName;
-if (!petProfiles[activeHealthPetName]) activeHealthPetName = activePetName;
-
-const recordHistoryData = {
-  today: {
-    label: "今日数据",
-    feeding: 2,
-    water: "正常",
-    walk: 3.2,
-    weight: 10.8,
-    stool: "正常",
-    mood: "活跃",
-  },
-  yesterday: {
-    label: "昨天数据",
-    feeding: 2,
-    water: "正常",
-    walk: 2.4,
-    weight: 10.9,
-    stool: "偏软",
-    mood: "正常",
-  },
-  "0605": {
-    label: "06-05 数据",
-    feeding: 3,
-    water: "多",
-    walk: 2.8,
-    weight: 10.8,
-    stool: "正常",
-    mood: "低迷",
-  },
-};
+if (!petProfiles[activePetId]) activePetId = getPetIds()[0] || "";
+if (!petProfiles[activeRecordPetId]) activeRecordPetId = activePetId;
+if (!petProfiles[activeHealthPetId]) activeHealthPetId = activePetId;
+homeCarouselKey = activePetId || "__add__";
 
 const weekLabels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 const initialRecordDate = new Date();
@@ -193,52 +149,27 @@ let weekStartDate = getWeekStart(initialRecordDate);
 let selectedRecordDate = new Date(initialRecordDate);
 let lastKnownRecordTodayKey = formatLocalDateKey(initialRecordDate);
 
-const previousRecordDate = new Date(initialRecordDate);
-previousRecordDate.setDate(previousRecordDate.getDate() - 1);
+function restoreJsonStore(storageKey, fallback) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(storageKey) || "null");
+    return stored && typeof stored === "object" ? stored : fallback;
+  } catch (error) {
+    console.warn("无法读取本地数据：" + storageKey, error);
+    return fallback;
+  }
+}
 
-const dailyRecordData = {
-  [formatLocalDateKey(initialRecordDate)]: {
-    weight: "10.8 kg",
-    feeding: "2 勺",
-    water: "正常",
-    walk: "3.2 公里",
-    stool: "正常",
-    mood: "活跃",
-  },
-  [formatLocalDateKey(previousRecordDate)]: {
-    weight: "10.9 kg",
-    feeding: "2 勺",
-    water: "正常",
-    walk: "2.4 公里",
-    stool: "偏软",
-    mood: "正常",
-  },
-  "2026-06-04": {
-    weight: "10.8 kg",
-    feeding: "2 勺",
-    water: "正常",
-    walk: "3.2 公里",
-    stool: "正常",
-    mood: "活跃",
-  },
-  "2026-06-05": {
-    weight: "10.8 kg",
-    feeding: "3 勺",
-    water: "多",
-    walk: "2.8 公里",
-    stool: "正常",
-    mood: "低迷",
-  },
-  "2026-06-06": {
-    weight: "10.9 kg",
-    feeding: "2 勺",
-    water: "正常",
-    walk: "2.4 公里",
-    stool: "偏软",
-    mood: "正常",
-  },
-};
+const dailyRecordData = restoreJsonStore(HEALTH_STORAGE_KEY, Object.create(null));
+const restoredTasks = restoreJsonStore(TASK_STORAGE_KEY, []);
+let taskData = Array.isArray(restoredTasks) ? restoredTasks : [];
 
+function persistTasks() {
+  localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(taskData));
+}
+
+function persistHealthRecords() {
+  localStorage.setItem(HEALTH_STORAGE_KEY, JSON.stringify(dailyRecordData));
+}
 const breedData = {
   dog: {
     title: "狗类百科",
@@ -565,6 +496,7 @@ function showPage(pageId, navTarget) {
   if (navTarget) {
     document.querySelector(`.bottom-nav button[data-target="${navTarget}"]`)?.classList.add("active");
   }
+  if (pageId === "record-manage-page") renderRecordManagement();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -576,16 +508,65 @@ function setSegmentedValue(selector, value) {
   });
 }
 
-function renderManagedRecord(record) {
-  document.querySelector("#manage-date-label").textContent = record.label;
-  document.querySelector("#manage-feeding").value = record.feeding;
-  document.querySelector("#manage-walk").value = record.walk;
-  document.querySelector("#manage-weight").value = record.weight;
-  setSegmentedValue("#manage-water", record.water);
-  setSegmentedValue("#manage-stool", record.stool);
-  setSegmentedValue("#manage-mood", record.mood);
+function parseRecordNumber(value) {
+  return Number.parseFloat(String(value ?? "0")) || 0;
 }
 
+function renderManagedRecord(record, dateKey) {
+  document.querySelector("#record-manage-page").dataset.recordDate = dateKey || "";
+  document.querySelector("#manage-date-label").textContent = dateKey ? formatFullDate(parseLocalDateKey(dateKey)) : "暂无记录";
+  document.querySelector("#manage-feeding").value = parseRecordNumber(record?.feeding);
+  document.querySelector("#manage-walk").value = parseRecordNumber(record?.walk);
+  document.querySelector("#manage-weight").value = parseRecordNumber(record?.weight);
+  setSegmentedValue("#manage-water", record?.water || "正常");
+  setSegmentedValue("#manage-stool", record?.stool || "正常");
+  setSegmentedValue("#manage-mood", record?.mood || "正常");
+}
+
+function renderRecordManagement(selectedDateKey) {
+  const records = dailyRecordData[activeRecordPetId] || Object.create(null);
+  const entries = Object.entries(records).sort(([firstDate], [secondDate]) => secondDate.localeCompare(firstDate));
+  const historyList = document.querySelector("#record-manage-page .history-list");
+  historyList.innerHTML = entries.map(([dateKey, record]) =>
+    '<button class="history-item" type="button" data-record-date="' + escapePetMarkup(dateKey) + '">' +
+    '<time>' + escapePetMarkup(formatFullDate(parseLocalDateKey(dateKey))) + '</time><span>喂食 ' +
+    escapePetMarkup(record.feeding) + ' · 遛弯 ' + escapePetMarkup(record.walk) + '</span></button>'
+  ).join("");
+  const targetDateKey = selectedDateKey && records[selectedDateKey] ? selectedDateKey : entries[0]?.[0] || "";
+  historyList.querySelector('[data-record-date="' + CSS.escape(targetDateKey) + '"]')?.classList.add("active");
+  renderManagedRecord(records[targetDateKey], targetDateKey);
+}
+
+function saveManagedRecord() {
+  const pet = petProfiles[activeRecordPetId];
+  const dateKey = document.querySelector("#record-manage-page").dataset.recordDate;
+  if (!pet || !dateKey) { showToast("当前没有可修改的宠物记录"); return; }
+  const record = {
+    feeding: Number(document.querySelector("#manage-feeding").value || 0) + " 勺",
+    walk: Number(document.querySelector("#manage-walk").value || 0) + " 公里",
+    weight: Number(document.querySelector("#manage-weight").value || 0) + " kg",
+    water: document.querySelector("#manage-water .selected")?.textContent.trim() || "正常",
+    stool: document.querySelector("#manage-stool .selected")?.textContent.trim() || "正常",
+    mood: document.querySelector("#manage-mood .selected")?.textContent.trim() || "正常",
+  };
+  dailyRecordData[pet.id] ||= Object.create(null);
+  dailyRecordData[pet.id][dateKey] = record;
+  if (dateKey === formatLocalDateKey(new Date())) {
+    pet.record = {
+      feeding: parseRecordNumber(record.feeding),
+      walk: parseRecordNumber(record.walk),
+      weight: parseRecordNumber(record.weight),
+      water: record.water,
+      stool: record.stool,
+      mood: record.mood,
+    };
+    persistPetProfiles();
+  }
+  persistHealthRecords();
+  renderRecordManagement(dateKey);
+  renderDailyRecord();
+  showToast("当天记录修改已保存");
+}
 function formatFullDate(date) {
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 }
@@ -623,41 +604,36 @@ function syncRecordCalendarToToday(force = false) {
   lastKnownRecordTodayKey = todayKey;
   selectedRecordDate = today;
   weekStartDate = getWeekStart(today);
-  if (!dailyRecordData[todayKey]) {
-    const pet = petProfiles[activeRecordPetName] || petProfiles[getPetNames()[0]];
-    dailyRecordData[todayKey] = {
-      weight: `${pet?.record?.weight || 0} kg`,
-      feeding: `${pet?.record?.feeding || 0} 勺`,
-      water: pet?.record?.water || "待记录",
-      walk: `${pet?.record?.walk || 0} 公里`,
-      stool: pet?.record?.stool || "待记录",
-      mood: pet?.record?.mood || "待记录",
-    };
-  }
   renderWeekCalendar();
 }
-
 function formatShortDate(date) {
   return `${date.getMonth() + 1} 月 ${date.getDate()} 日`;
 }
 
 function getRecordForActivePet(key) {
-  const datedRecord = dailyRecordData[key];
-  if (!datedRecord) return null;
-  if (activeRecordPetName === "豆包") return datedRecord;
-  const pet = petProfiles[activeRecordPetName];
-  if (!pet) return datedRecord;
-  return {
-    weight: `${pet.record.weight} kg`, feeding: `${pet.record.feeding} 勺`, water: pet.record.water,
-    walk: `${pet.record.walk} 公里`, stool: pet.record.stool, mood: pet.record.mood,
-  };
+  if (!activeRecordPetId) return null;
+  return dailyRecordData[activeRecordPetId]?.[key] || null;
 }
-
 function updateRecordsPet(petName) {
   const pet = petProfiles[petName];
-  if (!pet) return;
-  activeRecordPetName = petName;
   const avatar = document.querySelector("#records-pet-avatar");
+  if (!pet) {
+    activeRecordPetId = "";
+    avatar.hidden = true;
+    avatar.removeAttribute("src");
+    avatar.alt = "";
+    document.querySelector("#records-pet-name").textContent = "暂无宠物";
+    document.querySelector("#records-pet-desc").textContent = "请先在首页新增宠物";
+    document.querySelector("#records-pet-score").textContent = "--";
+    document.querySelector("#record-score-value").textContent = "--";
+    document.querySelector("#record-score-circle").textContent = "0";
+    document.querySelector("#record-score-copy").textContent = "新增宠物后即可查看健康档案。";
+    document.querySelector("#record-status").textContent = "无宠物";
+    document.querySelector("#record-metric-list")?.replaceChildren();
+    return;
+  }
+  activeRecordPetId = petName;
+  avatar.hidden = false;
   avatar.src = pet.avatar;
   avatar.alt = `${pet.name}照片`;
   document.querySelector("#records-pet-name").textContent = pet.name;
@@ -669,6 +645,7 @@ function updateRecordsPet(petName) {
     ? "状态优秀，继续保持当前饮食和运动节奏。"
     : "整体状态良好，建议持续关注饮水与每日活动量。";
   renderDailyRecord();
+  renderRecordTasks();
 }
 
 function renderDailyRecord() {
@@ -678,7 +655,10 @@ function renderDailyRecord() {
   document.querySelector("#record-date-label").textContent = formatShortDate(selectedRecordDate);
   document.querySelector("#record-status").textContent = record ? "已填写" : "无记录";
   card.classList.toggle("no-record", !record);
-  if (!record) return;
+  if (!record) {
+    list.replaceChildren();
+    return;
+  }
   const metrics = [
     ["体重", record.weight],
     ["喂食", record.feeding],
@@ -809,44 +789,144 @@ navButtons.forEach((button) => {
   });
 });
 
-document.querySelectorAll(".open-task-modal").forEach((button) => {
-  button.addEventListener("click", () => {
-    const isFamilyTask = button.dataset.taskContext === "family";
-    modal.dataset.taskContext = isFamilyTask ? "family" : "standard";
-    document.querySelector("#task-modal-title").textContent = isFamilyTask ? "新增家庭协作任务" : "新增 / 编辑任务";
-    document.querySelector("#task-modal .eyebrow").textContent = isFamilyTask ? "家庭协作" : "任务";
-    const taskNameInput = document.querySelector("#task-modal .task-form input");
-    const saveTaskButton = document.querySelector("#task-modal .task-modal > .primary-button");
-    taskNameInput.value = isFamilyTask ? "" : (taskNameInput.value || "傍晚遛弯");
-    saveTaskButton.dataset.toast = isFamilyTask ? "家庭任务已创建并同步给成员" : "任务已保存";
-    modal.classList.add("active");
-    modal.setAttribute("aria-hidden", "false");
+function renderTaskPetOptions() {
+  const picker = document.querySelector("#task-modal .pet-picker");
+  if (!picker) return;
+  const petOptions = getPetIds().map((petId) => {
+    const pet = petProfiles[petId];
+    return '<label class="pet-option"><input type="checkbox" data-pet-id="' + escapePetMarkup(pet.id) + '" />' +
+      '<img src="' + escapePetMarkup(pet.avatar) + '" alt="' + escapePetMarkup(pet.name) + '" /><span>' + escapePetMarkup(pet.name) + '</span></label>';
+  }).join("");
+  picker.innerHTML = '<legend>选择宠物，可多选</legend>' + petOptions +
+    '<label class="pet-option shared-task-option"><input id="task-shared-option" type="checkbox" />' +
+    '<i class="task-scope-icon">⌂</i><span>共同任务</span></label>';
+}
+
+function renderRecordTasks() {
+  const list = document.querySelector("#records-page .records-task-list");
+  if (!list) return;
+  const tasks = taskData.filter((task) => task.shared || task.petIds?.includes(activeRecordPetId));
+  list.innerHTML = tasks.map((task) =>
+    '<button class="timeline-item ' + (task.done ? "done" : "") + ' open-task-modal" type="button" data-task-id="' + escapePetMarkup(task.id) + '">' +
+    '<time>' + escapePetMarkup(task.time || "待定") + '</time><span><strong>' + escapePetMarkup(task.title) +
+    '</strong><small>' + escapePetMarkup(task.note || (task.done ? "已完成" : "待完成")) + '</small></span></button>'
+  ).join("");
+}
+function renderHomeTasks() {
+  const taskList = document.querySelector("#home-page .home-task-list");
+  if (!taskList) return;
+  const sortedTasks = [...taskData].sort((firstTask, secondTask) => {
+    const completionOrder = Number(firstTask.done) - Number(secondTask.done);
+    return completionOrder || String(firstTask.time || "").localeCompare(String(secondTask.time || ""));
   });
+  const taskMarkup = sortedTasks.map((task) => {
+    const assignedPets = (task.petIds || []).map((petId) => petProfiles[petId]).filter(Boolean);
+    const scopeLabel = task.shared ? "共同任务" : assignedPets.map((pet) => pet.name).join("、") || "未分配";
+    const note = (task.note || "宠物照护事项") + "，" + (task.done ? "已完成" : "待完成");
+    return '<article class="timeline-item ' + (task.done ? "done" : "") + '" data-task-id="' + escapePetMarkup(task.id) + '">' +
+      '<button class="task-open open-task-modal" type="button"><time>' + escapePetMarkup(task.time || "待定") + '</time>' +
+      '<div class="home-task-copy"><span class="home-task-pet-badge ' + (task.shared ? "shared" : "") + '">' + escapePetMarkup(scopeLabel) + '</span>' +
+      '<strong>' + escapePetMarkup(task.title) + '</strong><small>' + escapePetMarkup(note) + '</small></div></button>' +
+      '<button class="task-complete" type="button" aria-label="' + escapePetMarkup(task.title) + (task.done ? "已完成，点击恢复为未完成" : "未完成，点击标记完成") + '">' +
+      (task.done ? "✓" : "") + '</button></article>';
+  }).join("");
+  taskList.innerHTML = taskMarkup +
+    '<button class="timeline-item home-task-add open-task-modal" type="button"><span class="task-add-icon">＋</span><strong class="task-add-label">新增任务</strong></button>';
+}
+
+function openTaskEditor(button) {
+  const isFamilyTask = button.dataset.taskContext === "family";
+  const taskId = button.closest("[data-task-id]")?.dataset.taskId || "";
+  const task = taskData.find((item) => item.id === taskId) || null;
+  activeEditingTaskId = isFamilyTask ? "" : task?.id || "";
+  modal.dataset.taskContext = isFamilyTask ? "family" : "standard";
+  document.querySelector("#task-modal-title").textContent = isFamilyTask ? "新增家庭协作任务" : task ? "编辑任务" : "新增任务";
+  document.querySelector("#task-modal .eyebrow").textContent = isFamilyTask ? "家庭协作" : "任务";
+  document.querySelector("#task-name-input").value = task?.title || "";
+  document.querySelector("#task-time-input").value = task?.time || "18:30";
+  document.querySelector("#task-repeat-select").value = task?.repeat || "仅一次";
+  document.querySelector("#task-note-input").value = task?.note || "";
+  renderTaskPetOptions();
+  document.querySelectorAll("#task-modal [data-pet-id]").forEach((input) => {
+    input.checked = Boolean(task?.petIds?.includes(input.dataset.petId));
+    input.closest(".pet-option")?.classList.toggle("selected", input.checked);
+  });
+  const sharedInput = document.querySelector("#task-shared-option");
+  if (sharedInput) {
+    sharedInput.checked = Boolean(task?.shared);
+    sharedInput.closest(".pet-option")?.classList.toggle("selected", sharedInput.checked);
+  }
+  document.querySelector("#task-delete-button").hidden = !task;
+  modal.classList.add("active");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function saveStandardTask() {
+  const title = document.querySelector("#task-name-input").value.trim();
+  const petIds = [...document.querySelectorAll("#task-modal [data-pet-id]:checked")].map((input) => input.dataset.petId);
+  const shared = Boolean(document.querySelector("#task-shared-option")?.checked);
+  if (!title) { showToast("请输入任务名称"); return false; }
+  if (!shared && petIds.length === 0) { showToast("请选择至少一只宠物或共同任务"); return false; }
+  const task = activeEditingTaskId ? taskData.find((item) => item.id === activeEditingTaskId) : null;
+  const values = {
+    title,
+    petIds,
+    shared,
+    time: document.querySelector("#task-time-input").value || "",
+    repeat: document.querySelector("#task-repeat-select").value,
+    note: document.querySelector("#task-note-input").value.trim(),
+    memberIds: [...document.querySelectorAll("#task-modal .member-option input:checked")].map((input) => input.value),
+  };
+  if (task) Object.assign(task, values);
+  else taskData.push({ id: createLocalId("task"), done: false, ...values });
+  persistTasks();
+  renderHomeTasks();
+  renderAllPetControls();
+  activeEditingTaskId = "";
+  return true;
+}
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest(".open-task-modal");
+  if (button) openTaskEditor(button);
+});
+
+document.querySelector("#task-delete-button").addEventListener("click", () => {
+  const task = taskData.find((item) => item.id === activeEditingTaskId);
+  if (!task) return;
+  taskData = taskData.filter((item) => item.id !== task.id);
+  persistTasks();
+  renderHomeTasks();
+  renderAllPetControls();
+  activeEditingTaskId = "";
+  modal.classList.remove("active");
+  modal.setAttribute("aria-hidden", "true");
+  showToast(task.title + "已删除");
 });
 
 document.querySelectorAll(".toast-button").forEach((button) => {
   button.addEventListener("click", () => {
+    if (button.id === "task-save-button" && modal.dataset.taskContext === "standard") {
+      if (!saveStandardTask()) return;
+      modal.classList.remove("active");
+      modal.setAttribute("aria-hidden", "true");
+      showToast("任务已保存");
+      return;
+    }
     if (button.closest("#task-modal") && modal.dataset.taskContext === "family") {
-      const taskNameInput = document.querySelector("#task-modal .task-form input");
-      const taskTimeInput = document.querySelector('#task-modal .task-form input[type="time"]');
-      const taskName = taskNameInput.value.trim() || "新的家庭任务";
-      const taskTime = taskTimeInput.value || "待设置";
-      document.querySelector("#family-task-list").insertAdjacentHTML("beforeend", `
-        <article class="family-task-item pending" data-family-task="${taskName.replace(/[<>"']/g, "")}">
-          <span class="family-task-icon">📌</span>
-          <div><strong>${taskName.replace(/[<>"']/g, "")}</strong><small>计划 ${taskTime} · 家庭协作任务</small></div>
-          <em>待分配</em>
-          <button class="family-task-status-button" type="button" data-complete-family-task><span>○</span>确认完成</button>
-        </article>`);
-      document.querySelector("#family-activity-list").insertAdjacentHTML("afterbegin", `<article><i>＋</i><div><strong>小鱼添加了${taskName.replace(/[<>"']/g, "")}</strong><span>刚刚 · 家庭任务</span></div></article>`);
+      const taskName = document.querySelector("#task-name-input").value.trim() || "新的家庭任务";
+      const taskTime = document.querySelector("#task-time-input").value || "待设置";
+      const safeTaskName = taskName.replace(/[<>"']/g, "");
+      document.querySelector("#family-task-list").insertAdjacentHTML("beforeend",
+        '<article class="family-task-item pending" data-family-task="' + safeTaskName + '"><span class="family-task-icon">📌</span>' +
+        '<div><strong>' + safeTaskName + '</strong><small>计划 ' + taskTime + ' · 家庭协作任务</small></div><em>待分配</em>' +
+        '<button class="family-task-status-button" type="button" data-complete-family-task><span>○</span>确认完成</button></article>');
       updateFamilyTaskProgress();
-      button.dataset.toast = "家庭任务已创建并同步给成员";
       modal.dataset.taskContext = "standard";
     }
     showToast(button.dataset.toast || "已保存");
   });
 });
-
 document.querySelectorAll(".page-link").forEach((button) => {
   button.addEventListener("click", (event) => {
     if (event.target.closest(".notification-button")) return;
@@ -865,41 +945,36 @@ document.querySelectorAll(".page-back").forEach((button) => {
   });
 });
 
-function moveCompletedHomeTasksToBottom() {
-  const taskList = document.querySelector("#home-page .home-task-list");
-  if (!taskList) return;
-  const completedTasks = [...taskList.querySelectorAll(".timeline-item.done")];
-  completedTasks
-    .sort((firstTask, secondTask) => {
-      const toMinutes = (task) => {
-        const [hours = 0, minutes = 0] = (task.querySelector("time")?.textContent || "0:0").trim().split(":").map(Number);
-        return hours * 60 + minutes;
-      };
-      return toMinutes(firstTask) - toMinutes(secondTask);
-    })
-    .forEach((item) => taskList.appendChild(item));
+function removeOrphanedPetTasks() {
+  const availablePetIds = new Set(getPetIds());
+  const beforeCount = taskData.length;
+  taskData = taskData.filter((task) => task.shared || (task.petIds || []).every((petId) => availablePetIds.has(petId)));
+  const removedTaskCount = beforeCount - taskData.length;
+  if (removedTaskCount) {
+    persistTasks();
+    renderHomeTasks();
+  }
+  return removedTaskCount;
 }
 
-document.querySelectorAll("#home-page .task-complete").forEach((button) => {
-  button.addEventListener("click", () => {
-    const item = button.closest(".timeline-item");
-    if (!item || item.classList.contains("done")) return;
-    item.classList.add("done");
-    button.textContent = "✓";
-    const note = item.querySelector("small");
-    if (note) {
-      note.textContent = note.textContent.replace("待完成", "已完成");
-      if (!note.textContent.includes("已完成")) {
-        note.textContent = `${note.textContent}，已完成`;
-      }
-    }
-    const petName = item.dataset.taskPet || "宠物";
-    moveCompletedHomeTasksToBottom();
-    showToast(`${petName}任务已完成`);
-  });
-});
-moveCompletedHomeTasksToBottom();
+function sortHomeTasksByCompletion() {
+  renderHomeTasks();
+}
 
+document.querySelector("#home-page .home-task-list").addEventListener("click", (event) => {
+  const button = event.target.closest(".task-complete");
+  if (!button) return;
+  const taskId = button.closest("[data-task-id]")?.dataset.taskId;
+  const task = taskData.find((item) => item.id === taskId);
+  if (!task) return;
+  task.done = !task.done;
+  persistTasks();
+  renderHomeTasks();
+  renderAllPetControls();
+  const assignedNames = (task.petIds || []).map((petId) => petProfiles[petId]?.name).filter(Boolean).join("、");
+  showToast((task.shared ? "共同" : assignedNames || "宠物") + (task.done ? "任务已完成" : "任务已恢复为未完成"));
+});
+renderHomeTasks();
 document.querySelectorAll(".close-modal").forEach((button) => {
   button.addEventListener("click", () => {
     modal.classList.remove("active");
@@ -923,35 +998,27 @@ document.querySelectorAll(".segmented button, .category-tabs button, .mini-segme
   });
 });
 
-document.querySelectorAll(".pet-option input").forEach((input) => {
+document.querySelectorAll(".pet-option input, .member-option input").forEach((input) => {
   input.addEventListener("change", () => {
-    input.closest(".pet-option").classList.toggle("selected", input.checked);
+    const option = input.closest(".pet-option, .member-option");
+    option?.classList.toggle("selected", input.checked);
   });
 });
 
-const petProfileExtras = {
-  豆包: { birthDate: "2024-03-18", hobbies: "散步、接飞盘" },
-  奶糖: { birthDate: "2025-01-12", hobbies: "玩球、晒太阳" },
-  团子: { birthDate: "2023-05-06", hobbies: "逗猫棒、钻纸箱" },
-};
-
-function formatPetBirthDate(value) {
-  if (!value) return "未填写";
-  const [year, month, day] = value.split("-");
-  return `${year}年${Number(month)}月${Number(day)}日`;
-}
 function normalizePetProfile(pet) {
-  if (!pet || pet.breed !== undefined) return pet;
-  const [breed = "", ageLabel = "", gender = ""] = pet.desc.split(" · ");
-  pet.breed = breed;
-  pet.age = Math.max(0, Number.parseInt(ageLabel, 10) || 0);
-  pet.gender = gender || "公";
-  const extras = petProfileExtras[pet.name] || {};
-  pet.birthDate ??= extras.birthDate || "";
-  pet.hobbies ??= extras.hobbies || "";
+  if (!pet) return null;
+  pet.id ||= createLocalId("pet");
+  if (pet.breed === undefined) {
+    const [breed = "", ageLabel = "", gender = ""] = String(pet.desc || "").split(" · ");
+    pet.breed = breed;
+    pet.age = Math.max(0, Number.parseInt(ageLabel, 10) || 0);
+    pet.gender = gender || "未知";
+  }
+  pet.birthDate ||= "";
+  pet.hobbies ||= "";
+  pet.record ||= { feeding: 0, water: "正常", walk: 0, weight: 0, stool: "正常", mood: "正常" };
   return pet;
 }
-
 function escapePetMarkup(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -960,36 +1027,88 @@ function escapePetMarkup(value) {
     .replaceAll(">", "&gt;");
 }
 
+function renderMinePetManagement() {
+  const list = document.querySelector("#mine-pet-list");
+  const count = document.querySelector("#mine-pet-count");
+  if (!list || !count) return;
+  const pets = getPetIds().map((petId) => petProfiles[petId]).filter(Boolean);
+  count.textContent = pets.length + " 只";
+  const longestCompanionship = pets.reduce((days, pet) => Math.max(days, Number(pet.days) || 0), 0);
+  const companionDays = document.querySelector("#mine-pet-days");
+  if (companionDays) companionDays.textContent = longestCompanionship + "天";
+
+  if (!pets.length) {
+    list.innerHTML = '<div class="mine-pet-empty"><span>♡</span><strong>还没有宠物档案</strong><small>新增宠物后，可在这里统一查看和管理资料</small></div>';
+    return;
+  }
+
+  list.innerHTML = pets.map((pet) =>
+    '<article class="mine-pet-item">' +
+      '<img src="' + escapePetMarkup(pet.avatar) + '" alt="' + escapePetMarkup(pet.name) + '照片" />' +
+      '<div class="mine-pet-item-copy"><strong>' + escapePetMarkup(pet.name) + '</strong><span>' + escapePetMarkup(pet.desc) + '</span>' +
+      '<small>已陪伴 ' + Number(pet.days || 0) + ' 天 · 健康值 ' + Number(pet.score || 0) + '%</small></div>' +
+      '<button class="mine-pet-open" type="button" data-mine-pet-id="' + escapePetMarkup(pet.id) + '" aria-label="查看或编辑' + escapePetMarkup(pet.name) + '的资料">查看 / 编辑 <i>›</i></button>' +
+    '</article>'
+  ).join("");
+}
 function renderAllPetControls() {
-  const pets = getPetNames().map((name) => normalizePetProfile(petProfiles[name]));
+  const pets = getPetIds().map((petId) => normalizePetProfile(petProfiles[petId])).filter(Boolean);
   const homeSwitcher = document.querySelector(".pet-switcher");
   const recordsSwitcher = document.querySelector(".records-pet-switcher");
   const healthSwitcher = document.querySelector("#health-flow-pets");
   if (!homeSwitcher || !recordsSwitcher || !healthSwitcher) return;
 
+  const fallbackPetId = pets[0]?.id || "";
+  if (!petProfiles[activePetId]) activePetId = fallbackPetId;
+  if (!petProfiles[activeRecordPetId]) activeRecordPetId = fallbackPetId;
+  if (!petProfiles[activeHealthPetId]) activeHealthPetId = fallbackPetId;
+  if (homeCarouselKey !== "__add__" && !petProfiles[homeCarouselKey]) homeCarouselKey = activePetId || "__add__";
+  document.querySelector("#home-page .health-panel")?.toggleAttribute("hidden", pets.length === 0);
+
+  pets.forEach((pet) => {
+    const relatedTasks = taskData.filter((task) => task.petIds?.includes(pet.id));
+    pet.taskProgress = relatedTasks.filter((task) => task.done).length + "/" + relatedTasks.length;
+  });
+
   healthSwitcher.dataset.count = String(pets.length);
   healthSwitcher.dataset.overflow = String(pets.length > 4);
   healthSwitcher.closest(".health-record-flow")?.classList.toggle("single-pet", pets.length === 1);
 
-  homeSwitcher.innerHTML = pets.map((pet) => `
-    <button class="${pet.name === activePetName ? "active" : ""}" type="button" data-pet="${escapePetMarkup(pet.name)}" title="拖动调整宠物顺序" aria-label="${escapePetMarkup(pet.name)}，按住拖动可调整顺序">
-      <img src="${escapePetMarkup(pet.avatar)}" alt="${escapePetMarkup(pet.name)}" />
-      <span>${escapePetMarkup(pet.name)}</span>
-      <i class="pet-drag-grip" aria-hidden="true">⠿</i>
-    </button>`).join("") + `
-    <button class="add-pet-button" type="button"><span class="plus-mark">+</span><span>新增</span></button>`;
+  const petCards = pets.map((pet) =>
+    '<button class="pet-carousel-card ' + (pet.id === activePetId ? "active" : "") + '" type="button" data-pet="' + escapePetMarkup(pet.id) + '" aria-label="查看' + escapePetMarkup(pet.name) + '的宠物信息">' +
+      '<span class="pet-carousel-profile"><img src="' + escapePetMarkup(pet.avatar) + '" alt="' + escapePetMarkup(pet.name) + '" />' +
+      '<span class="pet-carousel-copy"><strong>' + escapePetMarkup(pet.name) + '</strong><small>' + escapePetMarkup(pet.desc) + '</small></span></span>' +
+      '<span class="pet-carousel-stats"><span><small>已陪伴</small><strong>' + pet.days + '天</strong></span>' +
+      '<span><small>健康值</small><strong>' + pet.score + '%</strong></span>' +
+      '<span><small>今日任务</small><strong>' + escapePetMarkup(pet.taskProgress) + '</strong></span></span></button>'
+  ).join("");
+  const pagination = pets.length
+    ? '<span class="pet-carousel-pagination" aria-label="宠物卡片分页">' +
+      pets.map((pet) => '<button class="pet-carousel-dot" type="button" data-carousel-key="' + escapePetMarkup(pet.id) + '" aria-label="查看' + escapePetMarkup(pet.name) + '"></button>').join("") +
+      '<button class="pet-carousel-dot" type="button" data-carousel-key="__add__" aria-label="查看新增宠物卡片"></button></span>'
+    : "";
+  homeSwitcher.innerHTML = petCards + pagination +
+    '<button class="add-pet-button pet-carousel-card pet-carousel-add" type="button" data-carousel-key="__add__" aria-label="新增宠物">' +
+    '<span class="plus-mark">+</span><strong>新增宠物</strong><small>完善新伙伴的基础档案</small></button>';
 
-  recordsSwitcher.innerHTML = pets.map((pet) => `
-    <button class="${pet.name === activeRecordPetName ? "active" : ""}" type="button" data-record-pet="${escapePetMarkup(pet.name)}">
-      <img src="${escapePetMarkup(pet.avatar)}" alt="" /><span>${escapePetMarkup(pet.name)}</span><small>${pet.score}%</small>
-    </button>`).join("");
+  updateHomePetCarouselLayout();
 
-  healthSwitcher.innerHTML = pets.map((pet, index) => `${index ? '<span class="health-flow-line"></span>' : ""}
-    <button class="health-flow-pet" type="button" data-health-pet="${escapePetMarkup(pet.name)}" aria-label="切换为${escapePetMarkup(pet.name)}的健康记录">
-      <i>○</i><b>${escapePetMarkup(pet.name)}</b>
-    </button>`).join("");
+  recordsSwitcher.innerHTML = pets.map((pet) =>
+    '<button class="' + (pet.id === activeRecordPetId ? "active" : "") + '" type="button" data-record-pet="' + escapePetMarkup(pet.id) + '">' +
+    '<img src="' + escapePetMarkup(pet.avatar) + '" alt="" /><span>' + escapePetMarkup(pet.name) + '</span><small>' + pet.score + '%</small></button>'
+  ).join("");
+
+  healthSwitcher.innerHTML = pets.map((pet, index) =>
+    (index ? '<span class="health-flow-line"></span>' : "") +
+    '<button class="health-flow-pet" type="button" data-health-pet="' + escapePetMarkup(pet.id) + '" aria-label="切换为' + escapePetMarkup(pet.name) + '的健康记录">' +
+    '<i>○</i><b>' + escapePetMarkup(pet.name) + '</b></button>'
+  ).join("");
+
+  renderTaskPetOptions();
+  renderHomeTasks();
+  renderMinePetManagement();
+  updateRecordsPet(activeRecordPetId);
 }
-
 function clearPetDropIndicators() {
   document.querySelectorAll(".pet-switcher [data-pet]").forEach((button) => {
     button.classList.remove("dragging", "drop-before", "drop-after");
@@ -1001,13 +1120,13 @@ function clearPetDropIndicators() {
 
 function markPetDropTarget(button, placeAfter) {
   document.querySelectorAll(".pet-switcher [data-pet]").forEach((item) => item.classList.remove("drop-before", "drop-after"));
-  if (!button || button.dataset.pet === draggedPetName) return;
+  if (!button || button.dataset.pet === draggedPetId) return;
   button.classList.add(placeAfter ? "drop-after" : "drop-before");
   button.dataset.dropPosition = placeAfter ? "after" : "before";
 }
 
 function reorderPetProfiles(sourceName, targetName, placeAfter = false) {
-  const names = getPetNames();
+  const names = getPetIds();
   if (!sourceName || !targetName || sourceName === targetName || !petProfiles[sourceName] || !petProfiles[targetName]) return false;
   const reorderedNames = names.filter((name) => name !== sourceName);
   let targetIndex = reorderedNames.indexOf(targetName);
@@ -1049,21 +1168,27 @@ async function createPetFromForm(event) {
   const age = Number(document.querySelector("#pet-create-age").value);
   const genderCode = document.querySelector("#pet-create-gender").value;
   const gender = { MALE: "公", FEMALE: "母", UNKNOWN: "未知" }[genderCode];
+  const days = Number(document.querySelector("#pet-create-days").value);
+  const birthDate = document.querySelector("#pet-create-birth").value || String(Math.max(1980, new Date().getFullYear() - age)) + "-01-01";
+  const hobbies = document.querySelector("#pet-create-hobbies").value.trim();
   if (!name) { showToast("请输入宠物名称"); return; }
   if (!breed) { showToast("请输入宠物品种"); return; }
   if (!Number.isInteger(age) || age < 0 || age > 40) { showToast("请输入0到40岁的整数年龄"); return; }
-  if (petProfiles[name]) { showToast("宠物名称已存在"); return; }
+  if (!Number.isInteger(days) || days < 0 || days > 36500) { showToast("请输入0到36500天的整数陪伴天数"); return; }
+  if (birthDate > new Date().toISOString().slice(0, 10)) { showToast("出生日期不能晚于今天"); return; }
+  if (findPetIdByName(name)) { showToast("宠物名称已存在"); return; }
 
   const pet = {
+    id: createLocalId("pet"),
     name, species, breed, age, gender, genderCode,
-    desc: `${breed} · ${age}岁 · ${gender}`,
+    desc: breed + " · " + age + "岁 · " + gender,
     avatar: pendingPetAvatar || defaultPetAvatar(species),
-    birthDate: `${Math.max(1980, new Date().getFullYear() - age)}-01-01`,
-    days: 0,
+    birthDate,
+    days,
     score: 100,
     healthLabel: "待记录",
     taskProgress: "0/0",
-    hobbies: "",
+    hobbies,
     record: { feeding: 0, water: "正常", walk: 0, weight: 0, stool: "正常", mood: "正常" },
   };
   const submitButton = document.querySelector("#pet-create-submit");
@@ -1071,22 +1196,29 @@ async function createPetFromForm(event) {
   submitButton.textContent = "正在保存…";
   try {
     const serverPet = await requestPetApi("", { method: "POST", body: JSON.stringify(petApiPayload(pet)) });
-    if (serverPet) pet.id = serverPet.id;
-    petProfiles[name] = pet;
-    petProfileOrder.push(name);
+    if (serverPet?.id != null) pet.id = String(serverPet.id);
+    petProfiles[pet.id] = pet;
+    petProfileOrder.push(pet.id);
     persistPetProfiles();
-    activePetName = name;
+    activePetId = pet.id;
+    activeRecordPetId ||= pet.id;
+    activeHealthPetId ||= pet.id;
     renderAllPetControls();
-    selectHomePet(name);
+    selectHomePet(pet.id);
     renderHealthRecordFlow();
     closePetCreateModal();
-    showToast(`${name}已加入宠物列表`);
+    showToast(name + "已加入宠物列表");
   } catch (error) {
     showToast(error.message || "宠物保存失败");
   } finally {
     submitButton.disabled = false;
     submitButton.textContent = "保存宠物";
   }
+}
+function openPetCreateModal() {
+  petModal.classList.add("active");
+  petModal.setAttribute("aria-hidden", "false");
+  window.setTimeout(() => document.querySelector("#pet-create-name")?.focus(), 0);
 }
 
 function closePetCreateModal() {
@@ -1108,7 +1240,7 @@ function setPetDetailEditing(editing) {
 }
 
 function renderPetDetail() {
-  const pet = normalizePetProfile(petProfiles[activePetName]);
+  const pet = normalizePetProfile(petProfiles[activePetId]);
   if (!pet) return;
   const avatar = document.querySelector("#pet-detail-avatar");
   avatar.src = pet.avatar;
@@ -1138,129 +1270,118 @@ function renderPetDetail() {
   setPetDetailEditing(false);
 }
 
-function openActivePetDetail() {
+function openActivePetDetail(returnPageId = "home-page") {
+  const safeReturnPageId = typeof returnPageId === "string" ? returnPageId : "home-page";
+  const backButton = document.querySelector("#pet-detail-page .page-back");
+  if (backButton) backButton.dataset.back = safeReturnPageId;
   renderPetDetail();
   showPage("pet-detail-page");
 }
-
 async function savePetDetail() {
-  const pet = normalizePetProfile(petProfiles[activePetName]);
+  const pet = normalizePetProfile(petProfiles[activePetId]);
   if (!pet) return;
-  const oldName = activePetName;
   const newName = document.querySelector("#pet-detail-name-input").value.trim();
   const breed = document.querySelector("#pet-detail-breed-input").value.trim();
   const age = Math.max(0, Number.parseInt(document.querySelector("#pet-detail-age-input").value, 10) || 0);
   const gender = document.querySelector("#pet-detail-gender-input").value;
   const birthDate = document.querySelector("#pet-detail-birth-input").value;
   const hobbies = document.querySelector("#pet-detail-hobbies-input").value.trim();
+  const duplicatePetId = findPetIdByName(newName);
   if (!newName) { showToast("请输入宠物名称"); return; }
   if (!breed) { showToast("请输入宠物品种"); return; }
-  if (newName !== oldName && petProfiles[newName]) { showToast("宠物名称已存在"); return; }
+  if (duplicatePetId && duplicatePetId !== pet.id) { showToast("宠物名称已存在"); return; }
 
   const nextPet = { ...pet, name: newName, breed, age, gender, birthDate, hobbies };
   if (pet.id && getPetAccessToken()) {
     try {
-      await requestPetApi(`/${pet.id}`, { method: "PUT", body: JSON.stringify(petApiPayload(nextPet)) });
+      await requestPetApi("/" + pet.id, { method: "PUT", body: JSON.stringify(petApiPayload(nextPet)) });
     } catch (error) {
       showToast(error.message || "宠物信息保存失败");
       return;
     }
   }
 
-  pet.name = newName;
-  pet.breed = breed;
-  pet.age = age;
-  pet.gender = gender;
-  pet.birthDate = birthDate;
-  pet.hobbies = hobbies;
-  pet.desc = `${breed} · ${age}岁 · ${gender}`;
-  if (newName !== oldName) {
-    petProfileOrder = petProfileOrder.map((name) => name === oldName ? newName : name);
-    petProfiles[newName] = pet;
-    delete petProfiles[oldName];
-    document.querySelectorAll(`[data-pet="${oldName}"]`).forEach((button) => {
-      button.dataset.pet = newName;
-      const label = button.querySelector("span");
-      if (label) label.textContent = newName;
-    });
-    document.querySelectorAll(`[data-record-pet="${oldName}"]`).forEach((button) => {
-      button.dataset.recordPet = newName;
-      const label = button.querySelector("span");
-      if (label) label.textContent = newName;
-    });
-    document.querySelectorAll(`[data-health-pet="${oldName}"]`).forEach((button) => {
-      button.dataset.healthPet = newName;
-      button.setAttribute("aria-label", `切换为${newName}的健康记录`);
-      const label = button.querySelector("b");
-      if (label) label.textContent = newName;
-    });
-    if (submittedHealthPets.has(oldName)) {
-      submittedHealthPets.delete(oldName);
-      submittedHealthPets.add(newName);
-    }
-    if (activeHealthPetName === oldName) activeHealthPetName = newName;
-  }
-  activePetName = newName;
+  Object.assign(pet, nextPet, { desc: breed + " · " + age + "岁 · " + gender });
   persistPetProfiles();
   renderAllPetControls();
-  updateCurrentPet(newName);
-  if (activeRecordPetName === oldName) updateRecordsPet(newName);
-  if (activeHealthPetName === newName) updateHealthRecordPet(newName);
+  updateCurrentPet(pet.id);
+  if (activeHealthPetId === pet.id) updateHealthRecordPet(pet.id);
   else renderHealthRecordFlow();
   renderPetDetail();
   showToast("宠物信息已保存");
 }
-
 async function deleteActivePet() {
-  const names = getPetNames();
-  if (names.length <= 1) { showToast("至少需要保留一只宠物"); return; }
-  const pet = petProfiles[activePetName];
-  const confirmed = pet && window.confirm(`确定要删除宠物“${pet.name}”吗？\n删除后相关任务和健康记录可能无法恢复。`);
+  const pet = petProfiles[activePetId];
+  const confirmed = pet && window.confirm("确定要删除宠物“" + pet.name + "”吗？\n删除后其任务和健康记录将一并删除。");
   if (!confirmed) return;
   if (pet.id && getPetAccessToken()) {
     try {
-      await requestPetApi(`/${pet.id}`, { method: "DELETE" });
+      await requestPetApi("/" + pet.id, { method: "DELETE" });
     } catch (error) {
       showToast(error.message || "宠物删除失败");
       return;
     }
   }
-  const deletedName = activePetName;
-  delete petProfiles[deletedName];
-  petProfileOrder = petProfileOrder.filter((name) => name !== deletedName);
-  submittedHealthPets.delete(deletedName);
-  const nextName = getPetNames()[0];
-  activePetName = nextName;
-  activeRecordPetName = nextName;
+
+  const deletedPetId = pet.id;
+  const removedTaskCount = taskData.filter((task) => task.petIds?.includes(deletedPetId)).length;
+  taskData = taskData.filter((task) => !task.petIds?.includes(deletedPetId));
+  delete dailyRecordData[deletedPetId];
+  delete petProfiles[deletedPetId];
+  petProfileOrder = petProfileOrder.filter((petId) => petId !== deletedPetId);
+  submittedHealthPetIds.delete(deletedPetId);
+
+  const nextPetId = getPetIds()[0] || "";
+  activePetId = nextPetId;
+  activeHealthPetId = nextPetId;
+  activeRecordPetId = nextPetId;
+  homeCarouselKey = nextPetId || "__add__";
+
   persistPetProfiles();
+  persistTasks();
+  persistHealthRecords();
   renderAllPetControls();
-  updateCurrentPet(nextName);
-  updateRecordsPet(nextName);
-  if (activeHealthPetName === deletedName) updateHealthRecordPet(nextName);
-  else renderHealthRecordFlow();
-  showPage("home-page", "home-page");
-  showToast("宠物已删除");
+  if (nextPetId) {
+    updateCurrentPet(nextPetId);
+    updateRecordsPet(nextPetId);
+    updateHealthRecordPet(nextPetId);
+  } else {
+    renderHealthRecordFlow();
+  }
+  const returnPageId = document.querySelector("#pet-detail-page .page-back")?.dataset.back || "home-page";
+  const navTarget = ["home-page", "records-page", "wiki-page", "mine-page"].includes(returnPageId) ? returnPageId : "home-page";
+  showPage(returnPageId, navTarget);
+  showToast(removedTaskCount ? "宠物已删除，" + removedTaskCount + "项关联任务已移除" : "宠物已删除");
 }
 function updateCurrentPet(petName) {
   const pet = petProfiles[petName];
-  activePetName = petName;
-  if (!pet) return;
-
-  document.querySelector("#current-pet-avatar").src = pet.avatar;
-  document.querySelector("#current-pet-avatar").alt = `${pet.name}照片`;
-  document.querySelector("#current-pet-avatar").setAttribute("aria-label", `查看${pet.name}的宠物信息`);
-  document.querySelector("#current-pet-name").textContent = pet.name;
-  document.querySelector("#current-pet-desc").textContent = pet.desc;
-  document.querySelector("#current-pet-days").textContent = `${pet.days}天`;
-  document.querySelector("#current-pet-score").textContent = `${pet.score}%`;
-  document.querySelector("#current-pet-health-label").textContent = pet.taskProgress;
+  if (!pet) return false;
+  activePetId = petName;
+  const avatar = document.querySelector("#current-pet-avatar");
+  if (avatar) {
+    avatar.src = pet.avatar;
+    avatar.alt = `${pet.name}照片`;
+    avatar.setAttribute("aria-label", `查看${pet.name}的宠物信息`);
+  }
+  const summaryValues = {
+    "#current-pet-name": pet.name,
+    "#current-pet-desc": pet.desc,
+    "#current-pet-days": `${pet.days}天`,
+    "#current-pet-score": `${pet.score}%`,
+    "#current-pet-health-label": pet.taskProgress,
+  };
+  Object.entries(summaryValues).forEach(([selector, value]) => {
+    const node = document.querySelector(selector);
+    if (node) node.textContent = value;
+  });
+  return true;
 }
 
 function updateHealthRecordPet(petName) {
   const pet = petProfiles[petName];
   if (!pet) return;
-  activeHealthPetName = petName;
-  document.querySelector("#health-record-title").textContent = `记录${pet.name}今天的身体状态`;
+  activeHealthPetId = petName;
+  document.querySelector("#health-record-title").textContent = `${pet.name}今日健康记录`;
 
   document.querySelector("#home-feeding").value = pet.record.feeding;
   document.querySelector("#home-walk").value = pet.record.walk;
@@ -1271,31 +1392,82 @@ function updateHealthRecordPet(petName) {
   renderHealthRecordFlow();
 }
 
-function getHealthPetNames() {
-  return getPetNames();
+function getHealthPetIds() {
+  return getPetIds();
 }
 
 function getNextPendingHealthPet(currentPetName) {
-  const petNames = getHealthPetNames();
+  const petNames = getHealthPetIds();
   const currentIndex = petNames.indexOf(currentPetName);
   for (let offset = 1; offset < petNames.length; offset += 1) {
     const candidate = petNames[(currentIndex + offset) % petNames.length];
-    if (!submittedHealthPets.has(candidate)) return candidate;
+    if (!submittedHealthPetIds.has(candidate)) return candidate;
   }
   return null;
 }
 
 function selectHomePet(petName) {
+  homeCarouselKey = petName;
   document.querySelectorAll(".pet-switcher [data-pet]").forEach((item) => {
     item.classList.toggle("active", item.dataset.pet === petName);
   });
   updateCurrentPet(petName);
+  updateHealthRecordPet(petName);
+  updateHomePetCarouselLayout();
+}
+
+function updateHomePetCarouselLayout() {
+  const switcher = document.querySelector(".pet-switcher");
+  if (!switcher) return;
+  const cards = [...switcher.querySelectorAll(".pet-carousel-card")];
+  let activeIndex = cards.findIndex((card) => (card.dataset.pet || card.dataset.carouselKey) === homeCarouselKey);
+  if (activeIndex < 0) {
+    homeCarouselKey = activePetId;
+    activeIndex = Math.max(0, cards.findIndex((card) => card.dataset.pet === activePetId));
+  }
+
+  cards.forEach((card, index) => {
+    const delta = index - activeIndex;
+    card.classList.remove("active", "stack-before", "stack-after", "stack-after-next", "stack-far");
+    if (delta === 0) card.classList.add("active");
+    else if (delta === -1) card.classList.add("stack-before");
+    else if (delta === 1) card.classList.add("stack-after");
+    else if (delta === 2) card.classList.add("stack-after-next");
+    else card.classList.add("stack-far");
+    card.tabIndex = delta === 0 ? 0 : -1;
+    card.setAttribute("aria-hidden", String(Math.abs(delta) > 1));
+  });
+
+  switcher.querySelectorAll(".pet-carousel-dot[data-carousel-key]").forEach((dot) => {
+    const selected = dot.dataset.carouselKey === homeCarouselKey;
+    dot.classList.toggle("active", selected);
+    dot.setAttribute("aria-current", selected ? "true" : "false");
+  });
+}
+
+function shiftHomePet(direction) {
+  const keys = [...getPetIds(), "__add__"];
+  const currentIndex = Math.max(0, keys.indexOf(homeCarouselKey));
+  const nextIndex = Math.min(keys.length - 1, Math.max(0, currentIndex + direction));
+  if (nextIndex === currentIndex || !keys[nextIndex]) return false;
+  if (keys[nextIndex] === "__add__") {
+    homeCarouselKey = "__add__";
+    updateHomePetCarouselLayout();
+  } else {
+    selectHomePet(keys[nextIndex]);
+  }
+  return true;
 }
 
 function renderHealthRecordFlow() {
-  const petNames = getHealthPetNames();
-  const completedCount = petNames.filter((petName) => submittedHealthPets.has(petName)).length;
-  const allCompleted = petNames.length > 0 && completedCount === petNames.length;
+  const petIds = getHealthPetIds();
+  const todayKey = formatLocalDateKey(new Date());
+  petIds.forEach((petId) => {
+    if (dailyRecordData[petId]?.[todayKey]) submittedHealthPetIds.add(petId);
+    else submittedHealthPetIds.delete(petId);
+  });
+  const completedCount = petIds.filter((petId) => submittedHealthPetIds.has(petId)).length;
+  const allCompleted = petIds.length > 0 && completedCount === petIds.length;
   const healthPanel = document.querySelector(".health-panel");
   const progress = document.querySelector("#health-flow-progress");
   const flowHint = document.querySelector("#health-flow-hint");
@@ -1304,53 +1476,68 @@ function renderHealthRecordFlow() {
   const currentLabel = document.querySelector("#health-flow-current");
   const nextLabel = document.querySelector("#health-flow-next");
   const singlePetState = document.querySelector("#single-pet-flow-state");
+  const recordStatus = document.querySelector("#health-record-status");
+  const currentPet = petProfiles[activeHealthPetId];
+  const currentPetRecorded = Boolean(activeHealthPetId && submittedHealthPetIds.has(activeHealthPetId));
 
-  if (progress) progress.textContent = `今日记录 ${completedCount}/${petNames.length}`;
-  if (flowHint) flowHint.textContent = petNames.length === 1
-    ? `记录${petNames[0]}今天的身体状态`
+  if (recordStatus) {
+    recordStatus.textContent = currentPetRecorded ? "已填写" : "未填写";
+    recordStatus.classList.toggle("recorded", currentPetRecorded);
+    recordStatus.setAttribute("aria-label", (currentPet?.name || "当前宠物") + "今日健康记录" + (currentPetRecorded ? "已填写" : "未填写"));
+  }
+  if (progress) progress.textContent = "今日记录 " + completedCount + "/" + petIds.length;
+  if (flowHint) flowHint.textContent = petIds.length === 1
+    ? "记录" + petProfiles[petIds[0]].name + "今天的身体状态"
     : "提交后将自动进入下一只宠物";
+
   document.querySelectorAll("#health-flow-pets [data-health-pet]").forEach((button) => {
-    const petName = button.dataset.healthPet;
-    button.classList.toggle("current", petName === activeHealthPetName && !allCompleted);
-    button.classList.toggle("completed", submittedHealthPets.has(petName));
-    button.setAttribute("aria-pressed", String(petName === activeHealthPetName && !allCompleted));
+    const petId = button.dataset.healthPet;
+    button.classList.toggle("current", petId === activeHealthPetId && !allCompleted);
+    button.classList.toggle("completed", submittedHealthPetIds.has(petId));
+    button.setAttribute("aria-pressed", String(petId === activeHealthPetId && !allCompleted));
     const marker = button.querySelector("i");
-    if (marker) marker.textContent = submittedHealthPets.has(petName) ? "✓" : petName === activeHealthPetName && !allCompleted ? "●" : "○";
-    button.nextElementSibling?.classList.toggle("completed", submittedHealthPets.has(petName));
+    if (marker) marker.textContent = submittedHealthPetIds.has(petId) ? "✓" : petId === activeHealthPetId && !allCompleted ? "●" : "○";
+    button.nextElementSibling?.classList.toggle("completed", submittedHealthPetIds.has(petId));
   });
 
-  healthPanel?.classList.toggle("submitted", allCompleted);
+  healthPanel?.classList.remove("submitted");
   if (completeList) {
-    completeList.innerHTML = petNames.map((petName) => `<span class="health-complete-item"><b class="health-complete-check">✓</b>${petName}<em class="health-complete-status">已记录</em></span>`).join("");
+    completeList.innerHTML = petIds.map((petId) =>
+      '<span class="health-complete-item"><b class="health-complete-check">✓</b>' +
+      escapePetMarkup(petProfiles[petId].name) + '<em class="health-complete-status">已记录</em></span>'
+    ).join("");
   }
   if (allCompleted) {
     if (currentLabel) currentLabel.textContent = "今日记录已全部完成";
-    if (nextLabel) nextLabel.textContent = `${completedCount}/${petNames.length} 已记录`;
+    if (nextLabel) nextLabel.textContent = completedCount + "/" + petIds.length + " 已记录";
   }
-  if (!submitButton || allCompleted) return;
-
-  if (petNames.length === 1) {
-    const onlyPetName = petNames[0];
-    if (singlePetState) singlePetState.querySelector("span").textContent = `当前宠物：${onlyPetName} · 今天尚未提交健康记录`;
+  if (!submitButton || !currentPet) return;
+  if (allCompleted) {
+    submitButton.textContent = "更新" + currentPet.name + "的今日记录";
+    return;
+  }
+  if (petIds.length === 1) {
+    if (singlePetState) singlePetState.querySelector("span").textContent = "当前宠物：" + currentPet.name + " · 今天尚未提交健康记录";
     if (currentLabel) currentLabel.textContent = "唯一宠物，无需切换";
     if (nextLabel) nextLabel.textContent = "完成后结束今日记录";
     submitButton.textContent = "保存并完成今日记录";
     return;
   }
 
-  const nextPetName = getNextPendingHealthPet(activeHealthPetName);
-  if (currentLabel) currentLabel.textContent = `当前：${activeHealthPetName}`;
-  if (nextLabel) nextLabel.textContent = nextPetName ? `下一只：${nextPetName}` : "最后一只记录";
-  if (!nextPetName) {
+  const nextPetId = getNextPendingHealthPet(activeHealthPetId);
+  const nextPet = petProfiles[nextPetId];
+  if (currentLabel) currentLabel.textContent = "当前：" + currentPet.name;
+  if (nextLabel) nextLabel.textContent = nextPet ? "下一只：" + nextPet.name : "最后一只记录";
+  if (!nextPet) {
     submitButton.textContent = "保存并完成今日记录";
   } else {
-    const action = submittedHealthPets.has(activeHealthPetName) ? "更新并记录下一只" : "保存并记录下一只";
-    submitButton.textContent = `${action}：${nextPetName}`;
+    const action = submittedHealthPetIds.has(activeHealthPetId) ? "更新并记录下一只" : "保存并记录下一只";
+    submitButton.textContent = action + "：" + nextPet.name;
   }
 }
 
 function saveActiveHealthRecord() {
-  const pet = petProfiles[activeHealthPetName];
+  const pet = petProfiles[activeHealthPetId];
   if (!pet) return;
   pet.record.feeding = Number(document.querySelector("#home-feeding").value || 0);
   pet.record.walk = Number(document.querySelector("#home-walk").value || 0);
@@ -1358,27 +1545,54 @@ function saveActiveHealthRecord() {
   pet.record.water = document.querySelector("#home-water .selected")?.dataset.value || pet.record.water;
   pet.record.stool = document.querySelector("#home-stool .selected")?.dataset.value || pet.record.stool;
   pet.record.mood = document.querySelector("#home-mood .selected")?.dataset.value || pet.record.mood;
-  try { persistPetProfiles(); } catch (error) { showToast(error.message); return; }
 
-  const savedPetName = activeHealthPetName;
-  submittedHealthPets.add(savedPetName);
-  const nextPetName = getNextPendingHealthPet(savedPetName);
-  if (nextPetName) {
-    updateHealthRecordPet(nextPetName);
-    showToast(`${savedPetName}的记录已保存，正在记录${nextPetName}`);
+  const todayKey = formatLocalDateKey(new Date());
+  dailyRecordData[pet.id] ||= Object.create(null);
+  const wasAlreadySubmitted = Boolean(dailyRecordData[pet.id][todayKey]);
+  dailyRecordData[pet.id][todayKey] = {
+    weight: pet.record.weight + " kg",
+    feeding: pet.record.feeding + " 勺",
+    water: pet.record.water,
+    walk: pet.record.walk + " 公里",
+    stool: pet.record.stool,
+    mood: pet.record.mood,
+  };
+  submittedHealthPetIds.add(pet.id);
+  try {
+    persistPetProfiles();
+    persistHealthRecords();
+  } catch (error) {
+    showToast(error.message || "健康记录保存失败");
+    return;
+  }
+
+  const nextPetId = getNextPendingHealthPet(pet.id);
+  if (nextPetId) {
+    selectHomePet(nextPetId);
+    showToast(pet.name + "的记录已保存，正在记录" + petProfiles[nextPetId].name);
     return;
   }
   renderHealthRecordFlow();
-  showToast("所有宠物的今日健康记录已完成");
+  renderDailyRecord();
+  showToast(wasAlreadySubmitted ? pet.name + "的今日记录已更新" : "所有宠物的今日健康记录已完成");
 }
-
 renderAllPetControls();
+removeOrphanedPetTasks();
 document.querySelector("#health-submit-button")?.addEventListener("click", saveActiveHealthRecord);
+const healthPanelToggle = document.querySelector("#health-panel-toggle");
+healthPanelToggle?.addEventListener("click", () => {
+  const healthPanel = healthPanelToggle.closest(".health-panel");
+  const collapsed = !healthPanel.classList.contains("collapsed");
+  healthPanel.classList.toggle("collapsed", collapsed);
+  healthPanelToggle.setAttribute("aria-expanded", String(!collapsed));
+  healthPanelToggle.querySelector("span").textContent = collapsed ? "展开" : "收起";
+  healthPanelToggle.setAttribute("aria-label", collapsed ? "展开健康记录列表" : "收起健康记录列表");
+});
 document.querySelector("#health-flow-pets").addEventListener("click", (event) => {
   const button = event.target.closest("[data-health-pet]");
   if (button) updateHealthRecordPet(button.dataset.healthPet);
 });
-updateHealthRecordPet(activeHealthPetName);
+updateHealthRecordPet(activeHealthPetId);
 
 const homePetSwitcher = document.querySelector(".pet-switcher");
 
@@ -1389,122 +1603,66 @@ homePetSwitcher.addEventListener("click", (event) => {
   }
   const addButton = event.target.closest(".add-pet-button");
   if (addButton) {
-    petModal.classList.add("active");
-    petModal.setAttribute("aria-hidden", "false");
-    setTimeout(() => document.querySelector("#pet-create-name").focus(), 0);
+    openPetCreateModal();
+    return;
+  }
+  const dot = event.target.closest(".pet-carousel-dot[data-carousel-key]");
+  if (dot) {
+    if (dot.dataset.carouselKey === "__add__") {
+      homeCarouselKey = "__add__";
+      updateHomePetCarouselLayout();
+    } else {
+      selectHomePet(dot.dataset.carouselKey);
+    }
     return;
   }
   const button = event.target.closest("[data-pet]");
-  if (button) selectHomePet(button.dataset.pet);
+  if (button) {
+    selectHomePet(button.dataset.pet);
+    openActivePetDetail("home-page");
+  }
 });
 
-function activatePointerPetSort() {
-  if (!pointerPetSort || pointerPetSort.active) return;
-  pointerPetSort.active = true;
-  draggedPetName = pointerPetSort.sourceName;
-  pointerPetSort.sourceButton.classList.add("dragging");
-  pointerPetSort.sourceButton.style.setProperty("--drag-x", "0px");
-  pointerPetSort.sourceButton.style.setProperty("--drag-y", "0px");
-  if (pointerPetSort.pointerType !== "mouse" && navigator.vibrate) navigator.vibrate(25);
-}
-
-function getNearestPetDropTarget(clientX, sourceName, sourceCenterX) {
-  const buttons = [...homePetSwitcher.querySelectorAll("[data-pet]")];
-  const sourceIndex = buttons.findIndex((button) => button.dataset.pet === sourceName);
-  if (sourceIndex < 0 || !Number.isFinite(sourceCenterX)) return null;
-  const candidates = buttons
-    .map((button, index) => {
-      const rect = button.getBoundingClientRect();
-      return { button, index, centerX: rect.left + rect.width / 2 };
-    })
-    .filter(({ button }) => button.dataset.pet !== sourceName);
-  if (!candidates.length) return null;
-  const nearest = candidates.reduce((closest, candidate) => (
-    Math.abs(candidate.centerX - clientX) < Math.abs(closest.centerX - clientX) ? candidate : closest
-  ));
-  const activationBoundary = (sourceCenterX + nearest.centerX) / 2;
-  if (nearest.index > sourceIndex && clientX <= activationBoundary) return null;
-  if (nearest.index < sourceIndex && clientX >= activationBoundary) return null;
-  return { button: nearest.button, placeAfter: sourceIndex < nearest.index };
-}
-
+let petCarouselGesture = null;
 homePetSwitcher.addEventListener("pointerdown", (event) => {
-  const button = event.target.closest("[data-pet]");
-  if (!button) return;
-  const sourceRect = button.getBoundingClientRect();
-  pointerPetSort = {
-    pointerId: event.pointerId,
-    pointerType: event.pointerType,
-    sourceName: button.dataset.pet,
-    sourceButton: button,
-    startX: event.clientX,
-    startY: event.clientY,
-    sourceCenterX: sourceRect.left + sourceRect.width / 2,
-    active: false,
-    targetButton: null,
-    placeAfter: false,
-    timer: event.pointerType === "mouse" ? null : setTimeout(activatePointerPetSort, 260),
-  };
-  button.setPointerCapture?.(event.pointerId);
+  const card = event.target.closest(".pet-carousel-card");
+  if (event.button !== 0 || !card) return;
+  petCarouselGesture = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, carouselKey: card.dataset.pet || card.dataset.carouselKey };
+  homePetSwitcher.classList.add("is-dragging");
 });
-
-homePetSwitcher.addEventListener("pointermove", (event) => {
-  if (!pointerPetSort || event.pointerId !== pointerPetSort.pointerId) return;
-  if (!pointerPetSort.active) {
-    const moved = Math.hypot(event.clientX - pointerPetSort.startX, event.clientY - pointerPetSort.startY);
-    if (pointerPetSort.pointerType === "mouse" && moved > 4) {
-      activatePointerPetSort();
-    } else if (pointerPetSort.pointerType !== "mouse" && moved > 9) {
-      clearTimeout(pointerPetSort.timer);
-      pointerPetSort = null;
-      clearPetDropIndicators();
-      return;
-    }
-  }
-  if (!pointerPetSort?.active) return;
-  event.preventDefault();
-  pointerPetSort.sourceButton.style.setProperty("--drag-x", `${event.clientX - pointerPetSort.startX}px`);
-  pointerPetSort.sourceButton.style.setProperty("--drag-y", `${event.clientY - pointerPetSort.startY}px`);
-  const target = getNearestPetDropTarget(event.clientX, pointerPetSort.sourceName, pointerPetSort.sourceCenterX);
-  if (!target) {
-    pointerPetSort.targetButton = null;
-    clearPetDropIndicators();
-    return;
-  }
-  pointerPetSort.targetButton = target.button;
-  pointerPetSort.placeAfter = target.placeAfter;
-  markPetDropTarget(target.button, target.placeAfter);
+homePetSwitcher.addEventListener("pointerup", (event) => {
+  if (!petCarouselGesture || petCarouselGesture.pointerId !== event.pointerId) return;
+  const gesture = petCarouselGesture;
+  const deltaX = event.clientX - gesture.startX;
+  const deltaY = event.clientY - gesture.startY;
+  petCarouselGesture = null;
+  homePetSwitcher.classList.remove("is-dragging");
+  const movement = Math.hypot(deltaX, deltaY);
+  if (movement < 12) return;
+  if (Math.abs(deltaX) < 42 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+  suppressPetSelection = true;
+  shiftHomePet(deltaX < 0 ? 1 : -1);
+  window.setTimeout(() => { suppressPetSelection = false; }, 0);
 });
-
-function finishPointerPetSort(event, commit = true) {
-  if (!pointerPetSort || event.pointerId !== pointerPetSort.pointerId) return;
-  clearTimeout(pointerPetSort.timer);
-  if (pointerPetSort.active) {
-    suppressPetSelection = true;
-    if (commit && pointerPetSort.targetButton) {
-      reorderPetProfiles(pointerPetSort.sourceName, pointerPetSort.targetButton.dataset.pet, pointerPetSort.placeAfter);
-    }
-    setTimeout(() => { suppressPetSelection = false; }, 0);
-  }
-  draggedPetName = "";
-  pointerPetSort = null;
-  clearPetDropIndicators();
-}
-
-homePetSwitcher.addEventListener("pointerup", finishPointerPetSort);
-homePetSwitcher.addEventListener("pointercancel", (event) => finishPointerPetSort(event, false));
-
+homePetSwitcher.addEventListener("pointercancel", () => {
+  petCarouselGesture = null;
+  homePetSwitcher.classList.remove("is-dragging");
+});
 homePetSwitcher.addEventListener("keydown", (event) => {
-  if (!event.altKey || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
-  const button = event.target.closest("[data-pet]");
-  if (!button) return;
-  const names = getPetNames();
-  const index = names.indexOf(button.dataset.pet);
-  const targetIndex = event.key === "ArrowLeft" ? index - 1 : index + 1;
-  if (targetIndex < 0 || targetIndex >= names.length) return;
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
   event.preventDefault();
-  reorderPetProfiles(button.dataset.pet, names[targetIndex], event.key === "ArrowRight");
-  document.querySelector(`.pet-switcher [data-pet="${CSS.escape(button.dataset.pet)}"]`)?.focus();
+  shiftHomePet(event.key === "ArrowRight" ? 1 : -1);
+  homePetSwitcher.querySelector(".pet-carousel-card.active")?.focus();
+});
+
+document.querySelector("#mine-pet-add")?.addEventListener("click", openPetCreateModal);
+document.querySelector("#mine-pet-list")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-mine-pet-id]");
+  if (!button || !petProfiles[button.dataset.minePetId]) return;
+  activePetId = button.dataset.minePetId;
+  homeCarouselKey = activePetId;
+  renderAllPetControls();
+  openActivePetDetail("mine-page");
 });
 document.querySelector(".records-pet-switcher").addEventListener("click", (event) => {
   const button = event.target.closest("[data-record-pet]");
@@ -1515,8 +1673,8 @@ document.querySelector(".records-pet-switcher").addEventListener("click", (event
   }
 });
 
-document.querySelector(".open-pet-detail").addEventListener("click", openActivePetDetail);
-document.querySelector(".open-pet-detail").addEventListener("keydown", (event) => {
+document.querySelector(".open-pet-detail")?.addEventListener("click", openActivePetDetail);
+document.querySelector(".open-pet-detail")?.addEventListener("keydown", (event) => {
   if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openActivePetDetail(); }
 });
 document.querySelector("#pet-detail-edit").addEventListener("click", () => setPetDetailEditing(true));
@@ -1577,18 +1735,12 @@ document.querySelector(".week-next").addEventListener("click", () => {
   renderWeekCalendar();
 });
 
-document.querySelectorAll(".history-item").forEach((button) => {
-  button.addEventListener("click", () => {
-    button.parentElement.querySelectorAll(".history-item").forEach((item) => item.classList.remove("active"));
-    button.classList.add("active");
-    const record = recordHistoryData[button.dataset.history];
-    if (record) {
-      renderManagedRecord(record);
-    }
-    showToast(`正在查看 ${button.querySelector("time")?.textContent || "历史"} 记录`);
-  });
+document.querySelector("#record-manage-save")?.addEventListener("click", saveManagedRecord);
+document.querySelector("#record-manage-page .history-list")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-record-date]");
+  if (!button) return;
+  renderRecordManagement(button.dataset.recordDate);
 });
-
 document.querySelectorAll(".notification-button, .notification-entry").forEach((button) => {
   button.addEventListener("click", () => {
     previousPageId = document.querySelector(".page.active")?.id || "mine-page";
@@ -1675,7 +1827,7 @@ document.querySelector("#family-page")?.addEventListener("click", (event) => {
     task.querySelector("small").textContent = `刚刚 · 小鱼已完成`;
     task.querySelector("em").textContent = "小鱼";
     const activityList = document.querySelector("#family-activity-list");
-    activityList.insertAdjacentHTML("afterbegin", `<article><i>✓</i><div><strong>小鱼完成了${task.dataset.familyTask}</strong><span>刚刚 · 豆包</span></div></article>`);
+    activityList.insertAdjacentHTML("afterbegin", `<article><i>✓</i><div><strong>小鱼完成了${task.dataset.familyTask}</strong><span>刚刚 · 宠物照护</span></div></article>`);
     updateFamilyTaskProgress();
     showToast(`${task.dataset.familyTask}已同步给家庭成员`);
     return;

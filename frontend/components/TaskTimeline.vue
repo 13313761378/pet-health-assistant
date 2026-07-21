@@ -8,11 +8,11 @@
       <button v-if="showAdd" class="small-button" type="button" @click="openTask">新增任务</button>
     </view>
     <view class="timeline-list">
-      <view v-for="task in orderedTasks" :key="task.name" class="timeline-item" :class="{ done: task.done }">
+      <view v-for="task in orderedTasks" :key="task.id" class="timeline-item" :class="{ done: task.done }">
         <button class="task-open" type="button" @click="openTask">
           <text class="time">{{ task.time }}</text>
           <view>
-            <view class="task-name-row"><text class="pet-badge" :class="badgeClass(task)">{{ task.petName || "宠物" }}</text><text class="name">{{ task.name }}</text></view>
+            <view class="task-name-row"><text class="pet-badge" :class="badgeClass(task)">{{ scopeLabel(task) }}</text><text class="name">{{ task.name }}</text></view>
             <text class="note">{{ task.note }}</text>
           </view>
         </button>
@@ -37,6 +37,10 @@ export default {
       type: Array,
       required: true,
     },
+    pets: {
+      type: Array,
+      default: () => [],
+    },
     showAdd: {
       type: Boolean,
       default: true,
@@ -53,7 +57,6 @@ export default {
   },
   methods: {
     completeTask(task) {
-      if (task.done) return;
       this.$emit("complete", task.id);
     },
     openTask() {
@@ -61,9 +64,13 @@ export default {
         url: "/pages/tasks/edit",
       });
     },
+    scopeLabel(task) {
+      if (task.shared || task.scope === "shared") return "共同任务";
+      const names = (task.petIds || []).map((petId) => this.pets.find((pet) => pet.id === petId)?.name).filter(Boolean);
+      return names.join("、") || "宠物";
+    },
     badgeClass(task) {
-      if (task.scope === "shared") return "shared";
-      return { 豆包: "doubao", 奶糖: "naitang", 团子: "tuanzi" }[task.petName] || "shared";
+      return task.shared || task.scope === "shared" ? "shared" : "pet";
     },
   },
 };
@@ -126,7 +133,7 @@ export default {
 
 .task-name-row { display: flex; align-items: center; gap: 12rpx; min-width: 0; }
 .pet-badge { flex: 0 0 auto; border-radius: 999rpx; padding: 8rpx 14rpx; font-size: 20rpx; font-weight: 700; }
-.pet-badge.doubao { background: #fff0d8; color: #d87913; }.pet-badge.naitang { background: #eef0ff; color: #7167c7; }.pet-badge.tuanzi { background: #e8f7e4; color: #489c37; }.pet-badge.shared { background: #f2ece5; color: #746658; }
+.pet-badge.pet { background: #fff0d8; color: #d87913; }.pet-badge.shared { background: #f2ece5; color: #746658; }
 
 .note {
   display: block;

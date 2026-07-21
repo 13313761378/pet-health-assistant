@@ -25,10 +25,10 @@
         <view v-else class="empty-record">当日无记录</view>
       </view>
 
-      <HealthScoreCard :score="pet.healthScore" />
+      <HealthScoreCard :score="pet.healthScore || 0" />
     </view>
 
-    <TaskTimeline title="当天任务列表" :tasks="recordTasks" :show-add="false" />
+    <TaskTimeline title="当天任务列表" :tasks="recordTasks" :pets="appState.pets" :show-add="false" />
   </view>
 </template>
 
@@ -49,23 +49,19 @@ export default {
     return {
       appState,
       weekDays,
-      selectedDate: "2026-06-04",
-      dailyRecords: {
-        "2026-06-04": { weight: "10.8 kg", feeding: "2 勺", water: "正常", walk: "3.2 公里", stool: "正常", mood: "活跃" },
-        "2026-06-05": { weight: "10.8 kg", feeding: "3 勺", water: "多", walk: "2.8 公里", stool: "正常", mood: "低迷" },
-        "2026-06-06": { weight: "10.9 kg", feeding: "2 勺", water: "正常", walk: "2.4 公里", stool: "偏软", mood: "正常" },
-      },
+      selectedDate: new Date().toISOString().slice(0, 10),
+
     };
   },
   computed: {
     pet() {
-      return findPet(this.appState.profilePetName);
+      return findPet(this.appState.profilePetId);
     },
     recordTasks() {
-      return this.appState.tasks;
+      return this.appState.tasks.filter((task) => task.shared || task.petIds?.includes(this.pet.id));
     },
     currentRecord() {
-      return this.dailyRecords[this.selectedDate];
+      return this.appState.healthRecords[this.pet.id]?.[this.selectedDate] || null;
     },
     selectedDateLabel() {
       const [year, month, day] = this.selectedDate.split("-").map(Number);
